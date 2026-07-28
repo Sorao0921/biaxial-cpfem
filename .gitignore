@@ -17,6 +17,8 @@ private
 *.tmp
 *.bak
 
+src/mtex-5.11.1/
+
 # Ignore all LS-DYNA keyword files
 *.k
 

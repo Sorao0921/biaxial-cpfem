@@ -1,0 +1,1 @@
+% Notice!!: Before run this script, do "start_mtex" on the command window!!

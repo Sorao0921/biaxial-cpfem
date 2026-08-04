@@ -33,6 +33,12 @@ class PostDirectories:
     lines_dir: Path
     roughness_dir: Path
 
+    raw_angle_dir: Path
+    id_set_angle_dir: Path
+
+    raw_shear_strain_dir: Path
+    id_set_shear_strain_dir: Path
+
 
 def rho_dir_name(rho: float | None) -> str:
     """Convert rho into the common directory name."""
@@ -103,18 +109,30 @@ def build_post_directories(
     rho_name = rho_dir_name(rho)
 
     outputs_dir = ROOT / "outputs"
-
+    # Contents of outputs_dir:
     post_model_dir = outputs_dir / rho_name / f"{rho_name}_seed{seed}"
     coords_dir = post_model_dir / "coords"
-
+    angle_dir = post_model_dir / "angles"
+    shear_strain_dir = post_model_dir / "shear_strains"
+    # Contents of coords_dir:
     raw_coords_dir = coords_dir / "rawdata"
     edge_dropped_dir = coords_dir / "edge_dropped"
     lines_dir = coords_dir / "lines"
     roughness_dir = coords_dir / "roughness"
+    # Contents of angle_dir:
+    raw_angle_dir = angle_dir / "rawdata"
+    id_set_angle_dir = angle_dir / "id_set"
+    # Contents of shear_strain_dir:
+    raw_shear_strain_dir = shear_strain_dir / "rawdata"
+    id_set_shear_strain_dir = shear_strain_dir / "id_set"
 
     return PostDirectories(
         raw_coords_dir=raw_coords_dir,
         edge_dropped_dir=edge_dropped_dir,
         lines_dir=lines_dir,
         roughness_dir=roughness_dir,
+        raw_angle_dir=raw_angle_dir,
+        id_set_angle_dir=id_set_angle_dir,
+        raw_shear_strain_dir=raw_shear_strain_dir,
+        id_set_shear_strain_dir=id_set_shear_strain_dir,
     )

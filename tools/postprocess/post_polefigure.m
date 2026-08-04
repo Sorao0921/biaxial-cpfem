@@ -16,27 +16,28 @@ set(groot, 'defaultFigureCreateFcn', @(fig, ~) set(fig, 'Visible', 'off'));
 %% Parameters
 
 % Case settings
-rho = -0.5;
+rho = 1;
 seed = 1;
 
 % Project paths
 % Expected directory structure:
-% si_private/
-% |- CrystalOrientation/
-% |  |- post_polefigure.m
-% |- post/
+% pipeline/
+% |- tools/
+% |  |- postprocess/
+% |     |- post_polefigure.m
+% |- outputs/
 %    |- rho_{*}/
-%       |- seed_{*}/
+%       |- rho_{*}_seed{*}/
 %          |- angles/
-%             |- bunge_euler/
+%             |- id_set/
 %
 % The path is resolved from this script location, not from the current folder.
 SCRIPT_DIR = fileparts(mfilename('fullpath'));
-SI_PRIVATE_DIR = fileparts(SCRIPT_DIR);
-POST_DIR = fullfile(SI_PRIVATE_DIR, 'post');
-ANGLE_DIR = fullfile(POST_DIR, rho_dir_name(rho), seed_dir_name(seed), 'angles');
+PIPELINE_DIR = fileparts(fileparts(SCRIPT_DIR));
+DATA_DIR = fullfile(PIPELINE_DIR, 'outputs');
+ANGLE_DIR = fullfile(DATA_DIR, rho_dir_name(rho), [rho_dir_name(rho) '_' seed_dir_name(seed)], 'angles');
 
-INPUT_ROOT_DIR = fullfile(ANGLE_DIR, 'bunge_euler');
+INPUT_ROOT_DIR = fullfile(ANGLE_DIR, 'id_set');
 OUTPUT_ROOT_DIR = fullfile(ANGLE_DIR, 'polefigure');
 
 % Crystal and specimen symmetry
@@ -173,7 +174,7 @@ function name = rho_dir_name(rho)
 end
 
 function name = seed_dir_name(seed)
-    name = sprintf('seed_%d', seed);
+    name = sprintf('seed%d', seed);
 end
 
 function assert_required_columns(T, required_cols, csv_path)

@@ -9,10 +9,10 @@ THIS SCRIPT HAVE TO BE RUN ON SUPERDYNA4.
 
 Extracted history variables
 ---------------------------
-hv10:
+hv115:
     Total accumulated shear strain over all slip systems.
 
-hv182-hv193:
+hv103-hv114:
     Accumulated shear strain for slip systems 1-12.
 """
 
@@ -32,19 +32,19 @@ from extract_surface_coords import (
 # ============================================================
 
 HV_TO_COMPONENT = {
-    10: "accumulated_shear_strain_total",
-    182: "accumulated_shear_strain_slip01",
-    183: "accumulated_shear_strain_slip02",
-    184: "accumulated_shear_strain_slip03",
-    185: "accumulated_shear_strain_slip04",
-    186: "accumulated_shear_strain_slip05",
-    187: "accumulated_shear_strain_slip06",
-    188: "accumulated_shear_strain_slip07",
-    189: "accumulated_shear_strain_slip08",
-    190: "accumulated_shear_strain_slip09",
-    191: "accumulated_shear_strain_slip10",
-    192: "accumulated_shear_strain_slip11",
-    193: "accumulated_shear_strain_slip12",
+    115: "accumulated_shear_strain_total",
+    103: "accumulated_shear_strain_slip01",
+    104: "accumulated_shear_strain_slip02",
+    105: "accumulated_shear_strain_slip03",
+    106: "accumulated_shear_strain_slip04",
+    107: "accumulated_shear_strain_slip05",
+    108: "accumulated_shear_strain_slip06",
+    109: "accumulated_shear_strain_slip07",
+    110: "accumulated_shear_strain_slip08",
+    111: "accumulated_shear_strain_slip09",
+    112: "accumulated_shear_strain_slip10",
+    113: "accumulated_shear_strain_slip11",
+    114: "accumulated_shear_strain_slip12",
 }
 
 
@@ -140,10 +140,10 @@ def make_shear_strain_cfile_text(
 
     Therefore:
 
-        hv10  -> fringe 1010
-        hv182 -> fringe 1182
+        hv115 -> fringe 1115
+        hv103 -> fringe 1103
         ...
-        hv193 -> fringe 1193
+        hv114 -> fringe 1114
     """
     d3plot_str = to_cfile_path(d3plot_path)
 
@@ -251,7 +251,7 @@ def shear_strain_txt_to_outputs(
     txt_path: Path,
 ) -> int:
     """
-    Combine hv10 and hv182-hv193 into one table.
+    Combine hv115 and hv103-hv114 into one table.
 
     Output columns
     --------------

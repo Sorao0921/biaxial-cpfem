@@ -1,5 +1,9 @@
 # LS-DYNA 二軸引張・結晶塑性解析パイプライン仕様書
 
+## 0. English is below
+
+The English version follows the Japanese version in [English Specification](#english-specification).
+
 ## 1. 概要
 
 本リポジトリは、正方形平板モデルの二軸引張・結晶塑性解析について、次の処理を一連のパイプラインとして実行するためのコードを管理する。
@@ -476,3 +480,478 @@ python tools/postprocess/plot_for_textile.py
 ```
 
 実行前には、対象 `rho` / `seed` に対して `build_pre_directories()` と `build_post_directories()` が返すパスに必要ファイルがそろっていることを確認する。
+
+---
+
+# English Specification
+
+## 1. Overview
+
+This repository provides a pipeline for crystal-plasticity and biaxial-tension simulations of a square plate. It covers the following operations:
+
+1. Divide the initial mesh into grains represented by LS-DYNA parts.
+2. Generate orientation-dependent LS-DYNA `*PART` and `*MAT` cards.
+3. Combine mesh, control, boundary, section, curve, and material definitions into analysis models.
+4. Run the models with LS-DYNA/SuperDyna4.
+5. Extract surface coordinates, Bunge Euler angles, and slip-system shear strains from LS-PrePost.
+6. Associate element IDs with part IDs and calculate surface roughness and line profiles.
+7. Prepare data for roughness plots, cross-sectional profiles, pole figures, and related visualizations.
+
+Cases are identified by the following parameters:
+
+- `rho`: value identifying the biaxial loading condition
+- `seed`: random seed identifying the Voronoi partition and orientation dataset
+- `texture`: `brass`, `copper`, `cube`, `goss`, or `s`
+- `sd`: integer representing the orientation-distribution standard deviation; the main workflow uses 2 through 10
+- `state`: analysis-state number; the main workflow uses 01 through 13
+
+The standard case-name format is `{texture}_sd{sd}_seed{seed}`, for example `cube_sd2_seed1`.
+
+## 2. Pipeline
+
+```text
+inputs/keywords/consts/initmesh.k
+        |
+        | tools/preprocess/partset.py
+        v
+partset_seedN.k (element-to-grain/part assignment)
+
+inputs/orientation/texture_seedN/*.csv
+        |
+        | tools/preprocess/make_partsmat.py
+        v
+partsmat_*.k (orientation-dependent *PART and *MAT cards)
+
+partset + control + boundary + section + curve + partsmat
+        |
+        | tools/preprocess/merge_all.py
+        v
+models/rho_*/rho_*_seedN/merged_seedN/*.k
+        |
+        | LS-DYNA / SuperDyna4 analysis outside this repository
+        v
+run/d3plot
+        |
+        | tools/superdyna4/*.py + LS-PrePost
+        v
+surface-coordinate / Euler-angle / shear-strain CSV files
+        |
+        +-- tools/postprocess/post_main.py
+        |       +-- remove surface edges
+        |       +-- extract L1/L2/L3 profiles
+        |       `-- calculate Sa/Sq/Sz
+        |
+        `-- tools/postprocess/id_set.py
+                `-- normalize CSV files with element_id and part_id
+```
+
+## 3. Environment and Dependencies
+
+### 3.1 Python
+
+- Python 3.10 or later, as specified in `pyproject.toml`
+- NumPy
+- pandas
+- matplotlib
+- meshio
+- tqdm
+
+Runtime dependencies are not currently declared in `pyproject.toml`; install them separately as required.
+
+```bash
+python -m pip install -e .
+python -m pip install numpy pandas matplotlib meshio tqdm
+```
+
+Run Python commands from the repository root so that the `src` package can be resolved.
+
+### 3.2 External Software
+
+- LS-DYNA / SuperDyna4: simulation solver and execution environment
+- LS-PrePost 4.9: result extraction from `d3plot`
+- MATLAB and MTEX 5.11.1: orientation generation, pole figures, and misorientation processing
+- Windows PowerShell/batch: preparation and execution on SuperDyna4
+
+`tools/superdyna4/extract_surface_coords.py` uses the following fixed LS-PrePost path:
+
+```text
+C:\Program Files\LSTC\LS-PrePost 4.9\lsprepost4.9_x64.exe
+```
+
+Change `LSPREPOST_EXE` when LS-PrePost is installed elsewhere.
+
+## 4. Directory Layout
+
+```text
+pipeline/
+├── inputs/
+│   ├── keywords/
+│   │   ├── consts/                    # common mesh, control, section, and partset
+│   │   `-- keyword_rho_*/             # rho-dependent boundary and curve files
+│   ├── orientation/texture_seedN/     # orientation CSV inputs
+│   `-- partsmat/partsmat_seedN/        # generated material cards
+├── models/rho_*/rho_*_seedN/          # generated analysis models
+│   ├── keywordset_seedN.k
+│   `-- merged_seedN/*.k
+├── outputs/rho_*/rho_*_seedN/         # post-processing results
+│   ├── coords/{rawdata,edge_dropped,lines,roughness}
+│   ├── angles/{rawdata,id_set}
+│   `-- shear_strains/{rawdata,id_set}
+├── src/                                # reusable implementation
+├── tools/preprocess/                   # model-generation entry points
+├── tools/superdyna4/                   # d3plot extraction on the solver host
+├── tools/postprocess/                  # local post-processing and plotting
+`-- external/                           # UMATs, SuperDyna4 helpers, external assets
+```
+
+Path construction is centralized in `src/config/pipeline_paths.py`. The repository root is detected as two directories above that file.
+
+## 5. Input Specifications
+
+### 5.1 Common Keyword Files
+
+Place the following files in `inputs/keywords/consts/`:
+
+| File | Purpose |
+|---|---|
+| `initmesh.k` | Initial node and element mesh |
+| `partset_seedN.k` | Element-to-grain/part assignment |
+| `control.k` | LS-DYNA control and database settings |
+| `section.k` | Section definitions |
+
+Place the following files in `inputs/keywords/keyword_rho_{rho}/`:
+
+| File | Purpose |
+|---|---|
+| `boundary_rho_{rho}.k` | Biaxial loading and constraint conditions |
+| `curve_rho_{rho}.k` | Load or displacement history curves |
+
+### 5.2 Orientation CSV Files
+
+Orientation files belong in `inputs/orientation/texture_seedN/*.csv`. Each row represents one part/grain, and row order maps to `part_id=1, 2, ...`.
+
+The three columns are Bunge Euler angles:
+
+```text
+phi1,Phi,phi2
+```
+
+`id_set.py` accepts both headered and headerless files. Because `make_partsmat.py` uses `numpy.loadtxt`, its current implementation expects a headerless, numeric-only CSV.
+
+Recommended filenames are:
+
+- `bunge_euler_{texture}_sd{sd}_seed{seed}.csv`
+- `{texture}_sigma{sd}_seed{seed}.csv`
+
+### 5.3 SuperDyna4 Case Layout
+
+Place cases directly under `tools/superdyna4/` as follows:
+
+```text
+tools/superdyna4/
+`-- cube_sd2_seed1/
+    `-- run/
+        `-- d3plot
+```
+
+Only directories containing `run/d3plot` are detected automatically.
+
+## 6. Pre-processing and Model Generation
+
+### 6.1 Generate a Partset
+
+```bash
+python tools/preprocess/partset.py --seed 5
+```
+
+To intentionally overwrite existing output:
+
+```bash
+python tools/preprocess/partset.py --seed 5 --overwrite
+```
+
+The script:
+
+1. Loads `initmesh.k` through the `mesh` class.
+2. Sets the NumPy random seed from `--seed`.
+3. Derives the Voronoi region from the x/y/z extent of the mesh.
+4. Generates seed points using the default grain size `(0.02, 0.015, 0.01)`.
+5. Assigns each element to the nearest seed using its center position.
+6. Writes `inputs/keywords/consts/partset_seedN.k` and a metadata JSON file.
+
+Generation stops if output already exists unless `--overwrite` is supplied.
+
+### 6.2 Generate Part and Material Cards
+
+```bash
+python tools/preprocess/make_partsmat.py --seed 4
+```
+
+The script:
+
+1. Enumerates `inputs/orientation/texture_seedN/*.csv`.
+2. Maps each row to `part_id = row index + 1`.
+3. Generates one `*PART` card per part.
+4. Writes the Bunge Euler angles into row 5 of the material card.
+5. Generates `*MAT_USER_DEFINED_MATERIAL_MODELS_TITLE` cards.
+6. Saves `inputs/partsmat/partsmat_seedN/partsmat_{CSV stem}.k`.
+7. Records the file list in `partsmat_seedN.json`.
+
+Material values, including density `0.027`, Young's modulus `69000`, Poisson's ratio `0.3`, and hardening parameters, are currently hard-coded in `make_partsmat()`. Modify its `param` value to change the material model.
+
+### 6.3 Merge the Keyword Set and Final Models
+
+Set `RHO`, `SEED`, and `OVERWRITE_EXISTING` at the beginning of `tools/preprocess/merge_all.py`, then run:
+
+```bash
+python tools/preprocess/merge_all.py
+```
+
+The process has two stages:
+
+1. `KeywordSetBuilder` inserts `control`, `boundary`, `section`, and `curve` into the partset and creates `keywordset_seedN.k`.
+2. It appends the orientation-matched `partsmat_*.k` and creates `merged_seedN/{case}.k`.
+
+Insertion rules:
+
+- `control.k`: immediately after `*KEYWORD`
+- `boundary.k`: immediately after the complete control block
+- `section.k`: normally between `part_1` and `part_2`
+- `curve.k`: before the first `*ELEMENT`, or before `*NODE` when no element keyword exists
+- Embedded `*KEYWORD` and `*END` lines are removed, and exactly one final `*END` is appended
+
+Existing files are skipped when `OVERWRITE_EXISTING=False`.
+
+## 7. Result Extraction on SuperDyna4/Windows
+
+Run the following scripts under `tools/superdyna4/`. Each script processes states 1 through 13 and skips a state when its final CSV already exists.
+
+### 7.1 Surface Coordinates
+
+```bash
+python extract_surface_coords.py
+```
+
+- Generates one LS-PrePost cfile per state.
+- Keeps node IDs from `91205` through `114005` as surface nodes.
+- Writes headerless `x,y,z` rows.
+- Uses `coordinates_{texture}_sd{sd}_seed{seed}_state{state:02d}.csv`.
+- Preserves intermediate TXT files because `KEEP_TXT=True`.
+
+### 7.2 Bunge Euler Angles
+
+```bash
+python extract_angles.py
+```
+
+UMAT history variables are interpreted as follows:
+
+| History variable | Meaning |
+|---|---|
+| `hv201` | `phi1` |
+| `hv202` | `Phi` |
+| `hv203` | `phi2` |
+
+LS-PrePost selects `hvN` with fringe ID `1000 + N`. Output columns are `element_id,phi1,Phi,phi2`, and filenames follow `bunge_euler_{case}_stateNN.csv`.
+
+### 7.3 Accumulated Shear Strain
+
+```bash
+python extract_shear_strain.py
+```
+
+- `hv115`: total accumulated shear strain over all slip systems
+- `hv103` through `hv114`: accumulated shear strain for slip systems 1 through 12
+
+The resulting `shear_strain_{case}_stateNN.csv` contains `element_id`, the total, and values for all 12 slip systems.
+
+After extraction, place CSV files in the applicable `outputs/.../coords/rawdata`, `angles/rawdata`, and `shear_strains/rawdata` case directories.
+
+## 8. Post-processing
+
+### 8.1 Coordinates, Roughness, and Line Profiles
+
+Set `RHO` and `SEED` at the beginning of `tools/postprocess/post_main.py`, then run:
+
+```bash
+python tools/postprocess/post_main.py
+```
+
+The expected input layout is:
+
+```text
+outputs/rho_X/rho_X_seedN/coords/rawdata/
+`-- cube_sd2_seedN/
+    `-- coordinates_cube_sd2_seedN_state01.csv
+```
+
+#### Edge Removal
+
+- Treats the original data as a row-major `151 x 151 = 22,801` regular grid.
+- Assigns one-based `node_id` values from CSV row positions.
+- Removes 19 points from each side and retains the central `113 x 113 = 12,769` points.
+- Saves the result in `coords/edge_dropped/{case}/`.
+
+A different node count or ordering raises `ValueError`.
+
+#### Line Extraction
+
+The following horizontal rows are extracted from the 113-row central region using zero-based indices:
+
+| Label | Row index | Points |
+|---|---:|---:|
+| L1 | 29 | 113 |
+| L2 | 57 | 113 |
+| L3 | 85 | 113 |
+
+Results are stored in `coords/lines/{case}/{L1|L2|L3}/`.
+
+#### Surface Roughness
+
+A least-squares reference plane is fitted to the central coordinates:
+
+```text
+z_plane = a*x + b*y + c
+residual = z - z_plane
+Sa = mean(abs(residual))
+Sq = sqrt(mean(residual^2))
+Sz = max(residual) - min(residual)
+```
+
+Each case produces `coords/roughness/roughness_{texture}_sd{sd}_seed{seed}.csv` with columns `case,file,num_nodes,a,b,c,sa,sq,sz`.
+
+### 8.2 Add Element and Part IDs
+
+Set `RHO` and `SEED` at the beginning of `tools/postprocess/id_set.py`, then run:
+
+```bash
+python tools/postprocess/id_set.py
+```
+
+The script processes five textures, `sd=2..10`, and `state=1..13`.
+
+For Euler angles:
+
+- State 01 expands each initial-orientation row to every element in the corresponding part.
+- States 02 through 13 add `part_id` to LS-PrePost `element_id` output using the partset mapping.
+- Output columns are `element_id,part_id,phi1,Phi,phi2`.
+
+For shear strain:
+
+- Every state receives a `part_id` from the partset mapping.
+- Output columns include `element_id`, `part_id`, the total accumulated shear strain, and slip systems 01 through 12.
+
+The implementation validates required columns, numeric conversion, and duplicate element IDs, then sorts by `element_id`. Existing outputs are not overwritten.
+
+### 8.3 Plotting and MATLAB Processing
+
+| File | Purpose |
+|---|---|
+| `tools/postprocess/plot_for_textile.py` | Plots Sa/Sq/Sz and L1/L2/L3 profiles by orientation and state; converts height from mm to µm by multiplying by 1000 |
+| `tools/postprocess/post_polefigure.m` | Pole-figure processing with MTEX |
+| `tools/postprocess/misorientation.m` | Orientation-difference and misorientation calculations |
+| `tools/postprocess/post_main.py` | Coordinates, roughness, and line-extraction orchestration |
+| `tools/postprocess/id_set.py` | Element/part-normalized output generation |
+
+The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
+
+## 9. Responsibilities of the Main Python Modules
+
+### `src/config`
+
+- `pipeline_paths.py`: derives all input, model, and output paths from `rho` and `seed`.
+
+### `src/make_model_process`
+
+- `write_keyword.py`: safely inserts keyword fragments and builds a keyword set.
+- `merge_partsmat.py`: combines a keyword set and material cards into a final deck.
+
+### `src/pre_process`
+
+- `mesh.py`: main mesh abstraction for meshio/LS-DYNA keyword input, element centers, region selection, and part extraction.
+- `mesh_node.py`: node-set I/O, translation, scaling, and rotation.
+- `mesh_elem.py`: element-set I/O, adjacency searches, and part assignment.
+- `mesh_edge.py`: edge/face generation and normal, length, and midpoint calculations.
+- `mesh_tool.py`: extrusion of shell meshes through the thickness.
+- `mesh_rve.py`: periodic and multipoint constraints for 2D/3D RVEs.
+- `cohesive_zone.py`: node duplication and cohesive-element insertion at interfaces.
+- `keyword_file.py`: keyword-section parsing and comment removal.
+- `keyword_format.py`: fixed-width LS-DYNA card formatting.
+- `euler_angles.py`: Euler-angle text I/O.
+- `mesh_dict.py`: element-type mappings between meshio and this implementation.
+
+### `src/crystal_plasticity`
+
+- `voro_seeds.py`: creates Voronoi seed points from region and grain-size parameters.
+- `voro_seeds_to_mesh.py`: assigns part IDs from element-center-to-seed distances.
+- `ebsd.py`, `ebsd_points.py`, `ebsd_grains.py`: EBSD data loading and coordinate transformations.
+- `ebsd_to_mesh*.py`: partitions EBSD point clouds and mesh regions and maps grain IDs to elements.
+
+### `src/extract_process`
+
+- `drop_edge.py`: removes the outer portion of a surface grid.
+- `extract_lines.py`: extracts L1/L2/L3 horizontal profiles.
+- `roughness.py`: calculates the least-squares plane and Sa/Sq/Sz.
+- `eid_pid_mapping.py`: builds element-to-part mappings and supports DataFrame expansion, annotation, selection, and grouping.
+
+### `src/others`
+
+- `id_array_tools.py`: ID-to-array-index mappings.
+- `geometry_tools.py`: rectangular/convex regions and spatial partitioning.
+- `math_tools.py`: vector, normal, and translation calculations.
+- `text_tools.py`: keyword-section and extension utilities.
+- `plot_tools.py`: basic EBSD-point and mesh-element visualization.
+
+## 10. External Code
+
+- `external/dyn_umats_from_c/` and `external/dyn_umats_from_n/`: LS-DYNA user-material and related Fortran sources.
+- `external/superdyna4_root/`: PowerShell and batch helpers for SuperDyna4.
+- `src/mtex-5.11.1/`: bundled MTEX 5.11.1 third-party library, not project-specific source code.
+
+## 11. Re-execution and Overwrite Policy
+
+- `partset.py` and `make_partsmat.py` stop on existing output and replace it only with `--overwrite`.
+- `merge_all.py` skips existing keyword sets and merged models when `OVERWRITE_EXISTING=False`.
+- SuperDyna4 extraction skips individual states with existing final CSV files.
+- `post_main.py` reuses nonempty edge-dropped, line-profile, and roughness output.
+- `id_set.py` skips existing state CSV files when `overwrite=False`.
+
+After a failed run, check for empty or incomplete files before restarting.
+
+## 12. Current Implementation Notes
+
+1. Many case parameters are constants such as `RHO` and `SEED` at the beginning of each script rather than CLI arguments.
+2. Coordinate processing depends on a row-major 151-by-151 grid and a fixed surface-node ID range.
+3. Material constants and the user-material card structure are hard-coded in `make_partsmat.py`.
+4. `id_set.py` processes five textures by nine `sd` values as one batch and stops when any required input is missing.
+5. `partset.py` writes `partset_seedN.json`, but its completion message reports a `.k.json` path.
+6. `SurfaceRoughnessAnalyzer.analyze_df()` currently records `num_nodes` as `len(df) + 1`, one greater than the actual row count.
+7. Runtime dependencies such as NumPy are not declared in `pyproject.toml`.
+8. No automated tests are currently included. After changing assumptions, verify row counts, ID mappings, the final keyword `*END`, and roughness values with a small case.
+
+## 13. Minimal Execution Sequence
+
+```bash
+# 1. Generate the partset
+python tools/preprocess/partset.py --seed 1
+
+# 2. Generate orientation-dependent material cards
+python tools/preprocess/make_partsmat.py --seed 1
+
+# 3. Set RHO/SEED in merge_all.py and generate final models
+python tools/preprocess/merge_all.py
+
+# 4. Run LS-DYNA/SuperDyna4 in the external solver environment
+
+# 5. Convert d3plot results to CSV on SuperDyna4
+python tools/superdyna4/extract_surface_coords.py
+python tools/superdyna4/extract_angles.py
+python tools/superdyna4/extract_shear_strain.py
+
+# 6. Place results under outputs/, set RHO/SEED, and post-process
+python tools/postprocess/post_main.py
+python tools/postprocess/id_set.py
+python tools/postprocess/plot_for_textile.py
+```
+
+Before execution, confirm that all files required by `build_pre_directories()` and `build_post_directories()` exist for the selected `rho` and `seed`.

@@ -29,31 +29,160 @@ OUTPUT_COLUMNS = [
     "phi2",
 ]
 
+SHEAR_STRAIN_COLUMNS = [
+    "accumulated_shear_strain_total",
+    "accumulated_shear_strain_slip01",
+    "accumulated_shear_strain_slip02",
+    "accumulated_shear_strain_slip03",
+    "accumulated_shear_strain_slip04",
+    "accumulated_shear_strain_slip05",
+    "accumulated_shear_strain_slip06",
+    "accumulated_shear_strain_slip07",
+    "accumulated_shear_strain_slip08",
+    "accumulated_shear_strain_slip09",
+    "accumulated_shear_strain_slip10",
+    "accumulated_shear_strain_slip11",
+    "accumulated_shear_strain_slip12",
+]
+
+SHEAR_STRAIN_OUTPUT_COLUMNS = [
+    "element_id",
+    "part_id",
+    *SHEAR_STRAIN_COLUMNS,
+]
+
 
 @dataclass(frozen=True)
-class EulerStatePaths:
-    """
-    Paths required to generate element-based Euler-angle CSV files.
-    """
+class IdSetStatePaths:
+    """Common path container for element-based id_set CSV generation."""
 
     partset_path: Path
-    input_euler_path: Path
     raw_output_dir: Path
     output_dir: Path
     raw_filename_template: str
     output_filename_template: str
 
     def raw_state_path(self, state: int) -> Path:
-        """
-        Return the raw LS-PrePost Euler-angle CSV path.
-
-        The raw file is used only for state02 and later.
-        """
+        """Return the raw LS-PrePost CSV path for the requested state."""
         return self.raw_output_dir / self.raw_filename_template.format(state=state)
 
     def output_state_path(self, state: int) -> Path:
         """Return the normalized output CSV path."""
         return self.output_dir / self.output_filename_template.format(state=state)
+
+
+@dataclass(frozen=True)
+class EulerStatePaths(IdSetStatePaths):
+    """
+    Paths required to generate element-based Euler-angle CSV files.
+    """
+
+    input_euler_path: Path
+
+
+@dataclass(frozen=True)
+class ShearStrainStatePaths(IdSetStatePaths):
+    """Paths required to generate element-based shear-strain CSV files."""
+
+
+class BaseIdSetGenerator:
+    """Shared data-generation logic for id_set CSV files."""
+
+    def __init__(self, paths: IdSetStatePaths) -> None:
+        self.paths = paths
+        self.mapper = ElementPartMapper(paths.partset_path)
+
+    def generate_state_csvs(
+        self,
+        *,
+        first_state: int = 1,
+        last_state: int = 13,
+        overwrite: bool = False,
+    ) -> None:
+        """Generate normalized CSV files for all requested states."""
+        if first_state < 1:
+            raise ValueError("first_state must be 1 or greater.")
+
+        if last_state < first_state:
+            raise ValueError("last_state must be greater than or equal to first_state.")
+
+        self.paths.output_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        print(f"Partset: {self.paths.partset_path}")
+        print(f"Registered parts: {self.mapper.number_of_parts}")
+        print(f"Registered elements: {self.mapper.number_of_elements}")
+
+        for state in range(first_state, last_state + 1):
+            output_path = self.paths.output_state_path(state)
+
+            if output_path.exists() and not overwrite:
+                print(f"state{state:02d}: output already exists, skip: {output_path}")
+                continue
+
+            output_data = self.build_state_data(state)
+            source_description = self.resolve_source_description(state)
+
+            output_data.to_csv(
+                output_path,
+                index=False,
+            )
+
+            print(
+                f"state{state:02d}: generated "
+                f"{len(output_data)} rows\n"
+                f"  source: {source_description}\n"
+                f"  output: {output_path}"
+            )
+
+    def build_state_data(self, state: int) -> pd.DataFrame:
+        raise NotImplementedError
+
+    def resolve_source_description(self, state: int) -> Path:
+        raise NotImplementedError
+
+
+class EulerIdSetGenerator(BaseIdSetGenerator):
+    """Generate element-based Euler-angle id_set CSV files."""
+
+    def __init__(self, paths: EulerStatePaths) -> None:
+        super().__init__(paths)
+        self.paths = paths
+
+    def build_state_data(self, state: int) -> pd.DataFrame:
+        if state == 1:
+            return build_state01_data(
+                mapper=self.mapper,
+                input_euler_path=self.paths.input_euler_path,
+            )
+
+        raw_path = self.paths.raw_state_path(state)
+        return build_lspost_state_data(
+            mapper=self.mapper,
+            raw_path=raw_path,
+        )
+
+    def resolve_source_description(self, state: int) -> Path:
+        if state == 1:
+            return self.paths.input_euler_path
+
+        return self.paths.raw_state_path(state)
+
+
+class ShearStrainIdSetGenerator(BaseIdSetGenerator):
+    """Generate element-based shear-strain id_set CSV files."""
+
+    def build_state_data(self, state: int) -> pd.DataFrame:
+        raw_path = self.paths.raw_state_path(state)
+        return build_shear_strain_state_data(
+            mapper=self.mapper,
+            raw_path=raw_path,
+        )
+
+    def resolve_source_description(self, state: int) -> Path:
+        return self.paths.raw_state_path(state)
 
 
 def read_input_euler_csv(
@@ -242,6 +371,62 @@ def build_lspost_state_data(
     return _finalize_output_data(element_euler_data)
 
 
+def read_raw_shear_strain_csv(
+    raw_path: Path,
+) -> pd.DataFrame:
+    """Read a raw shear-strain CSV exported from LS-PrePost."""
+    raw_path = Path(raw_path)
+
+    if not raw_path.is_file():
+        raise FileNotFoundError(f"Raw shear-strain CSV was not found: {raw_path}")
+
+    data = pd.read_csv(raw_path)
+
+    missing_columns = set(SHEAR_STRAIN_COLUMNS).difference(data.columns)
+
+    if missing_columns:
+        raise KeyError(
+            "The raw shear-strain CSV does not contain all required columns.\n"
+            f"Missing columns: {sorted(missing_columns)}\n"
+            f"Existing columns: {data.columns.tolist()}\n"
+            f"File: {raw_path}"
+        )
+
+    required = ["element_id", *SHEAR_STRAIN_COLUMNS]
+    result = data.loc[:, required].copy()
+
+    result["element_id"] = pd.to_numeric(result["element_id"], errors="raise").astype(
+        int
+    )
+
+    for column in SHEAR_STRAIN_COLUMNS:
+        result[column] = pd.to_numeric(result[column], errors="raise")
+
+    duplicated_mask = result["element_id"].duplicated(keep=False)
+    if duplicated_mask.any():
+        duplicated_ids = (
+            result.loc[duplicated_mask, "element_id"].drop_duplicates().tolist()
+        )
+        raise ValueError(
+            "Duplicated element_id values were found in the raw shear-strain CSV.\n"
+            f"Count: {len(duplicated_ids)}\n"
+            f"First 10: {duplicated_ids[:10]}\n"
+            f"File: {raw_path}"
+        )
+
+    return result.reset_index(drop=True)
+
+
+def build_shear_strain_state_data(
+    mapper: ElementPartMapper,
+    raw_path: Path,
+) -> pd.DataFrame:
+    """Generate an element-based shear-strain id_set CSV from raw state output."""
+    raw_data = read_raw_shear_strain_csv(raw_path)
+    element_data = mapper.add_part_id(raw_data)
+    return _finalize_shear_strain_output_data(element_data)
+
+
 def generate_euler_state_csvs(
     paths: EulerStatePaths,
     *,
@@ -249,79 +434,29 @@ def generate_euler_state_csvs(
     last_state: int = 13,
     overwrite: bool = False,
 ) -> None:
-    """
-    Generate normalized Euler-angle CSV files for all requested states.
-
-    Processing rule
-    ---------------
-    state01:
-        Use the input Euler-angle CSV because LS-PrePost records
-        zero Euler angles at the initial state.
-
-    state02-state13:
-        Use the LS-PrePost raw Euler-angle CSV and add part_id from
-        the partset.
-
-    Output columns
-    --------------
-    element_id, part_id, phi1, Phi, phi2
-    """
-    if first_state < 1:
-        raise ValueError("first_state must be 1 or greater.")
-
-    if last_state < first_state:
-        raise ValueError("last_state must be greater than or equal to first_state.")
-
-    paths.output_dir.mkdir(
-        parents=True,
-        exist_ok=True,
+    """Generate normalized Euler-angle CSV files for all requested states."""
+    generator = EulerIdSetGenerator(paths)
+    generator.generate_state_csvs(
+        first_state=first_state,
+        last_state=last_state,
+        overwrite=overwrite,
     )
 
-    mapper = ElementPartMapper(paths.partset_path)
 
-    print(f"Partset: {paths.partset_path}")
-    print(f"Registered parts: {mapper.number_of_parts}")
-    print(f"Registered elements: {mapper.number_of_elements}")
-
-    for state in range(
-        first_state,
-        last_state + 1,
-    ):
-        output_path = paths.output_state_path(state)
-
-        if output_path.exists() and not overwrite:
-            print(f"state{state:02d}: output already exists, skip: {output_path}")
-            continue
-
-        if state == 1:
-            output_data = build_state01_data(
-                mapper=mapper,
-                input_euler_path=paths.input_euler_path,
-            )
-
-            source_description = paths.input_euler_path
-
-        else:
-            raw_path = paths.raw_state_path(state)
-
-            output_data = build_lspost_state_data(
-                mapper=mapper,
-                raw_path=raw_path,
-            )
-
-            source_description = raw_path
-
-        output_data.to_csv(
-            output_path,
-            index=False,
-        )
-
-        print(
-            f"state{state:02d}: generated "
-            f"{len(output_data)} rows\n"
-            f"  source: {source_description}\n"
-            f"  output: {output_path}"
-        )
+def generate_shear_strain_state_csvs(
+    paths: ShearStrainStatePaths,
+    *,
+    first_state: int = 1,
+    last_state: int = 13,
+    overwrite: bool = False,
+) -> None:
+    """Generate normalized shear-strain CSV files for all requested states."""
+    generator = ShearStrainIdSetGenerator(paths)
+    generator.generate_state_csvs(
+        first_state=first_state,
+        last_state=last_state,
+        overwrite=overwrite,
+    )
 
 
 def _convert_euler_columns_to_numeric(
@@ -392,6 +527,45 @@ def _finalize_output_data(
     return result
 
 
+def _finalize_shear_strain_output_data(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Validate and arrange the final shear-strain output columns."""
+    missing_columns = set(SHEAR_STRAIN_OUTPUT_COLUMNS).difference(data.columns)
+
+    if missing_columns:
+        raise KeyError(
+            "Required shear-strain output columns are missing.\n"
+            f"Missing columns: {sorted(missing_columns)}"
+        )
+
+    result = data.loc[:, SHEAR_STRAIN_OUTPUT_COLUMNS].copy()
+    result["element_id"] = result["element_id"].astype(int)
+    result["part_id"] = result["part_id"].astype(int)
+
+    for column in SHEAR_STRAIN_COLUMNS:
+        result[column] = pd.to_numeric(result[column], errors="raise")
+
+    result = result.sort_values("element_id").reset_index(drop=True)
+
+    if result["element_id"].duplicated().any():
+        duplicated_ids = (
+            result.loc[
+                result["element_id"].duplicated(keep=False),
+                "element_id",
+            ]
+            .drop_duplicates()
+            .tolist()
+        )
+
+        raise ValueError(
+            "Duplicated element_id values exist in the final shear-strain output.\n"
+            f"First 10: {duplicated_ids[:10]}"
+        )
+
+    return result
+
+
 def _resolve_input_euler_path(
     texture: str,
     sd_value: int,
@@ -402,7 +576,7 @@ def _resolve_input_euler_path(
     candidate_paths = [
         pre_dirs.orientation_csv_dir
         / f"bunge_euler_{texture}_sd{sd_value}_seed{seed}.csv",
-        pre_dirs.orientation_csv_dir / f"{texture}_sigma{sd_value}.csv",
+        pre_dirs.orientation_csv_dir / f"{texture}_sigma{sd_value}_seed{seed}.csv",
     ]
 
     for candidate_path in candidate_paths:
@@ -431,6 +605,7 @@ def main() -> None:
                 rho=rho_value,
                 seed=seed,
             )
+
             input_euler_path = _resolve_input_euler_path(
                 texture=texture,
                 sd_value=sd_value,
@@ -438,15 +613,11 @@ def main() -> None:
                 pre_dirs=pre_dirs,
             )
 
-            paths = EulerStatePaths(
+            angle_paths = EulerStatePaths(
                 partset_path=pre_dirs.partset,
-                # One row corresponds to one part.
-                # The first row is part_id=1.
                 input_euler_path=input_euler_path,
-                # Raw LS-PrePost output for state02-state13.
                 raw_output_dir=post_dirs.raw_angle_dir
                 / f"bunge_euler_{texture}_sd{sd_value}_seed{seed}",
-                # Normalized output destination.
                 output_dir=post_dirs.id_set_angle_dir
                 / f"id_set_bunge_euler_{texture}_sd{sd_value}_seed{seed}",
                 raw_filename_template=(
@@ -458,7 +629,28 @@ def main() -> None:
             )
 
             generate_euler_state_csvs(
-                paths,
+                angle_paths,
+                first_state=1,
+                last_state=13,
+                overwrite=False,
+            )
+
+            shear_paths = ShearStrainStatePaths(
+                partset_path=pre_dirs.partset,
+                raw_output_dir=post_dirs.raw_shear_strain_dir
+                / f"shear_strain_{texture}_sd{sd_value}_seed{seed}",
+                output_dir=post_dirs.id_set_shear_strain_dir
+                / f"id_set_shear_strain_{texture}_sd{sd_value}_seed{seed}",
+                raw_filename_template=(
+                    f"shear_strain_{texture}_sd{sd_value}_seed{seed}_state{{state:02d}}.csv"
+                ),
+                output_filename_template=(
+                    f"shear_strain_{texture}_sd{sd_value}_seed{seed}_state{{state:02d}}.csv"
+                ),
+            )
+
+            generate_shear_strain_state_csvs(
+                shear_paths,
                 first_state=1,
                 last_state=13,
                 overwrite=False,

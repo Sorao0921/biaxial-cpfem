@@ -18,9 +18,9 @@ The English version follows the Japanese version in [English Specification](#eng
 
 対象ケースは主に以下の組合せで表現される。
 
-- `rho`: 二軸負荷条件を識別する値
+- `rho`: モデル全体に与えるマクロなひずみ比
 - `seed`: Voronoi 分割および方位データ系列を識別する乱数シード
-- `texture`: `brass`, `copper`, `cube`, `goss`, `s`
+- `texture`: 結晶方位`brass`, `copper`, `cube`, `goss`, `s`
 - `sd`: 方位分布の標準偏差を表す整数（主処理では 2～10）
 - `state`: 解析状態番号（主処理では 01～13）
 
@@ -176,6 +176,33 @@ tools/superdyna4/
 `run/d3plot` が存在するディレクトリだけが自動検出される。
 
 ## 6. 前処理（モデル作成）
+
+### 6.0 空間モデルの保存（CSV）
+
+粒界量や方位の不連続性を後から空間マッピングできるよう、partset の節点・要素・part 情報を LS-DYNA に依存しない CSV データセットへ変換できる。
+
+```bash
+python tools/preprocess/export_spatial_model.py --seed 1
+```
+
+出力先は既定で `database/spatial_model/seed1/` となり、次のファイルを含む。
+
+| ファイル | 内容 |
+|---|---|
+| `nodes.csv` | `node_id` とモデル座標 `x,y,z` |
+| `elements.csv` | `element_id`, `part_id`, 要素重心、節点接続 |
+| `parts.csv` | `part_id`, 要素・節点数、代表重心、bounding box |
+| `metadata.json` | 形式バージョン、座標・重心の定義、件数、元ファイル |
+
+任意の keyword と出力先も指定できる。
+
+```bash
+python tools/preprocess/export_spatial_model.py \
+  --input path/to/model.k \
+  --output-dir path/to/spatial_model
+```
+
+通常は一度だけ `.k` からこのデータセットを生成し、その後の粒界・方位解析では `elements.csv` の `element_id` / `part_id` / `center_*` を結合キーおよび位置として利用する。正確な形状や面共有判定が必要な場合は、`node_id_*` と `nodes.csv` を使って要素形状を復元できる。既存出力を意図的に置換するときだけ `--overwrite` を付ける。
 
 ### 6.1 partset の生成
 

@@ -31,9 +31,6 @@ class mesh(object):
             self.node_set = node_set('')
         else:
             self._init_from_file(input_file_dir, file_ext)
-            print("INFO: Reading mesh information from file.")
-            self.elem_set = elem_set(input_file_dir)
-            self.node_set = node_set(input_file_dir)
 
     def _init_from_file(self, input_file_dir: str, file_ext: str):
         """
@@ -42,14 +39,14 @@ class mesh(object):
         :param file_ext: '.k','.inp',...
         :return:
         """
-        if file_ext == '.k' or '.K':
+        if file_ext.lower() == '.k':
             print("INFO: Reading mesh information from LS-DYNA keyword file.")
             self.elem_set = elem_set(input_file_dir)
             self.node_set = node_set(input_file_dir)
         else:
-            print("INFO: Reading mesh information from other input file.")
-            mesh_mio = meshio.read(input_file_dir)
-            # self.elem_set, self.node_set = meshio_to_mesh(mesh_mio)
+            raise NotImplementedError(
+                f"Mesh import for {file_ext} is not implemented yet."
+            )
 
     # Output mesh
     # def write_keyword(self, write_dest, file_format: str = ".k"):
@@ -241,5 +238,3 @@ class mesh(object):
         :return: mesh
         """
         return deepcopy(self)
-
-

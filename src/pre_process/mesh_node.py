@@ -13,7 +13,7 @@ class node_set(object):
     id2idx_map_array = np.empty(0,dtype=int)
 
     def __init__(self, input_file_dir: str):
-        if input_file_dir.endswith('.k'):
+        if input_file_dir.lower().endswith('.k'):
             print("INFO: Reading node information from keyword file")
             self._input_from_keyword(input_file_dir)
             print("INFO: Initializing the id2idx mapping array for node")
@@ -199,7 +199,6 @@ class node_set(object):
         :return: (3,n) float array
         """
         return np.vstack((self.x_array, self.y_array, self.z_array))
-
 
 
 

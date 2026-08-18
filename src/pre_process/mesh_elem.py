@@ -12,7 +12,7 @@ class elem_set(object):
     id2idx_map_array = np.empty(0,dtype=int)
 
     def __init__(self, input_file_dir: str):
-        if input_file_dir.endswith('.k'):
+        if input_file_dir.lower().endswith('.k'):
             print("INFO: Reading element information from keyword file")
             self._input_from_keyword(input_file_dir)
             print("INFO: Initializing the id2idx mapping array for element")

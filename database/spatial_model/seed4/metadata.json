@@ -1,0 +1,19 @@
+{
+  "format": "si-spatial-model",
+  "version": 1,
+  "source": "/Users/Owner/dev/projects/si_masterthesis/pipeline/inputs/keywords/consts/partset_seed4.k",
+  "element_type": "ELEMENT_SOLID",
+  "coordinate_system": "model/global Cartesian coordinates",
+  "element_position_definition": "arithmetic mean of element node coordinates",
+  "part_position_definition": "arithmetic mean of member element centroids",
+  "counts": {
+    "nodes": 114005,
+    "elements": 90000,
+    "parts": 825
+  },
+  "files": {
+    "nodes": "nodes.csv",
+    "elements": "elements.csv",
+    "parts": "parts.csv"
+  }
+}

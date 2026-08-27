@@ -8,7 +8,6 @@ import numpy as np
 
 from src.pre_process.mesh import mesh
 
-
 SPATIAL_MODEL_VERSION = 1
 
 
@@ -58,7 +57,9 @@ def export_spatial_model(
     if len(node_ids) == 0 or len(element_ids) == 0:
         raise ValueError("The model must contain at least one node and one element.")
     if len(element_ids) != len(part_ids) or len(element_ids) != len(connectivity):
-        raise ValueError("Element IDs, part IDs and connectivity have different lengths.")
+        raise ValueError(
+            "Element IDs, part IDs and connectivity have different lengths."
+        )
     if len(np.unique(node_ids)) != len(node_ids):
         raise ValueError("Duplicate node IDs are not supported.")
     if len(np.unique(element_ids)) != len(element_ids):
@@ -71,7 +72,9 @@ def export_spatial_model(
             dtype=int,
         )
     except KeyError as error:
-        raise ValueError(f"Element connectivity refers to missing node ID {error.args[0]}.") from error
+        raise ValueError(
+            f"Element connectivity refers to missing node ID {error.args[0]}."
+        ) from error
 
     element_centroids = coordinates[connectivity_indices].mean(axis=1)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -121,9 +124,18 @@ def export_spatial_model(
     _write_csv(
         paths["parts"],
         [
-            "part_id", "element_count", "node_count",
-            "center_x", "center_y", "center_z",
-            "min_x", "min_y", "min_z", "max_x", "max_y", "max_z",
+            "part_id",
+            "element_count",
+            "node_count",
+            "center_x",
+            "center_y",
+            "center_z",
+            "min_x",
+            "min_y",
+            "min_z",
+            "max_x",
+            "max_y",
+            "max_z",
         ],
         part_rows,
     )

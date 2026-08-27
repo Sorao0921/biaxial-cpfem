@@ -40,6 +40,15 @@ class PostDirectories:
     id_set_shear_strain_dir: Path
 
 
+@dataclass(frozen=True)
+class MappingDirectories:
+    """Input and output paths used for spatial-model mapping."""
+
+    input_keyword: Path
+    spatial_model_dir: Path
+    plots_dir: Path
+
+
 def rho_dir_name(rho: float | None) -> str:
     """Convert rho into the common directory name."""
 
@@ -135,4 +144,16 @@ def build_post_directories(
         id_set_angle_dir=id_set_angle_dir,
         raw_shear_strain_dir=raw_shear_strain_dir,
         id_set_shear_strain_dir=id_set_shear_strain_dir,
+    )
+
+
+def build_mapping_directories(seed: int) -> MappingDirectories:
+    """Build paths for the solver-independent spatial model and its plots."""
+    input_keyword = ROOT / "inputs" / "keywords" / "consts" / f"partset_seed{seed}.k"
+    spatial_model_dir = ROOT / "database" / "spatial_model" / f"seed{seed}"
+
+    return MappingDirectories(
+        input_keyword=input_keyword,
+        spatial_model_dir=spatial_model_dir,
+        plots_dir=spatial_model_dir / "plots",
     )

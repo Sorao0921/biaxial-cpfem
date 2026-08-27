@@ -117,6 +117,8 @@ pipeline/
 │   ├── angles/{rawdata,id_set}
 │   `-- shear_strains/{rawdata,id_set}
 ├── src/                                # 再利用可能な処理本体
+│   `-- mapping/                        # 空間モデル生成・層別マッピング
+├── tools/mapping/                      # mapping用の実行スクリプト
 ├── tools/preprocess/                   # モデル作成の実行スクリプト
 ├── tools/superdyna4/                   # 解析機上での d3plot 抽出
 ├── tools/postprocess/                  # ローカル後処理・描画
@@ -182,7 +184,7 @@ tools/superdyna4/
 粒界量や方位の不連続性を後から空間マッピングできるよう、partset の節点・要素・part 情報を LS-DYNA に依存しない CSV データセットへ変換できる。
 
 ```bash
-python tools/preprocess/export_spatial_model.py --seed 1
+python tools/mapping/export_spatial_model.py --seed 1
 ```
 
 出力先は既定で `database/spatial_model/seed1/` となり、次のファイルを含む。
@@ -197,12 +199,20 @@ python tools/preprocess/export_spatial_model.py --seed 1
 任意の keyword と出力先も指定できる。
 
 ```bash
-python tools/preprocess/export_spatial_model.py \
+python tools/mapping/export_spatial_model.py \
   --input path/to/model.k \
   --output-dir path/to/spatial_model
 ```
 
 通常は一度だけ `.k` からこのデータセットを生成し、その後の粒界・方位解析では `elements.csv` の `element_id` / `part_id` / `center_*` を結合キーおよび位置として利用する。正確な形状や面共有判定が必要な場合は、`node_id_*` と `nodes.csv` を使って要素形状を復元できる。既存出力を意図的に置換するときだけ `--overwrite` を付ける。
+
+z方向の各段を節点接続から積み直し、part別の二次元マップとして描画する場合:
+
+```bash
+python tools/mapping/plot_spatial_layers.py --seed 1
+```
+
+`database/spatial_model/seed1/plots/` に層ごとのPNGと全層比較用の `layers_overview.png` を出力する。層は `elements.csv` の異なる `center_z` 値から自動検出されるため、4段という値はコードに固定されていない。同じ `part_id` は全層で同じ色になり、ポリゴン形状は `node_id_*` と `nodes.csv` の実座標から復元される。
 
 ### 6.1 partset の生成
 
@@ -372,6 +382,16 @@ Sz = max(residual) - min(residual)
 
 ケースごとに `coords/roughness/roughness_{texture}_sd{sd}_seed{seed}.csv` を生成する。列は `case,file,num_nodes,a,b,c,sa,sq,sz`。
 
+#### 変形後の高さコンターマップ
+
+`coords/rawdata` の各 `x,y,z` CSV から、変形後の `(x, y)` 座標上に高さ `z` を描画する。
+
+```bash
+python tools/mapping/plot_surface_height.py --rho 1 --seed 2
+```
+
+出力先は `coords/figures/height_contours/{case}/`。すべての図で `z = 0.004`（青）から `z = 0.01`（赤）までの共通色範囲を使用する。必要なら `--vmin` と `--vmax` で固定範囲を変更できる。CSV を位置引数で指定すると単一ファイルだけを描画できる。
+
 ### 8.2 element_id / part_id の付与
 
 `tools/postprocess/id_set.py` 冒頭の `RHO`, `SEED` を設定して実行する。
@@ -397,11 +417,19 @@ Euler 角:
 
 ### 8.3 描画・MATLAB 後処理
 
+累積せん断ひずみのコンターマップは次のコマンドで作成する。
+
+```bash
+python tools/mapping/plot_shear_strain.py --rho 1 --seed 1
+```
+
+`--metric` には `gamma_total`, `gamma_max`, `alpha`, `c_slip` を指定できる。省略時は4種類をすべて描画する。`--aggregation both`（既定）では、局所化を見るelementマップと、GOS・粒回転との比較に使う結晶粒マップの両方を出力する。結晶粒値は、まず粒内の各すべり系を表面要素面積で重み付き平均し、その後に4指標を計算する。すべての図に結晶粒界を重ねる。全すべり系が0の領域は `NaN` とし白色表示する。必要に応じて `--activity-threshold` に物理的な下限値を指定できる。
+
 | ファイル | 主な役割 |
 |---|---|
 | `tools/postprocess/plot_for_textile.py` | Sa/Sq/Sz と L1/L2/L3 プロファイルを方位・state 別に描画。高さは mm から µm へ 1000 倍する |
 | `tools/postprocess/post_polefigure.m` | MTEX による極点図後処理 |
-| `tools/postprocess/misorientation.m` | 方位差・misorientation の計算 |
+| `tools/postprocess/grain_orientation_metrics.m` | MTEX による粒平均回転、GOS、IPF色の計算 |
 | `tools/postprocess/post_main.py` | 表面粗さとライン抽出の統括 |
 | `tools/postprocess/id_set.py` | 要素/part 対応付きデータの生成 |
 
@@ -423,21 +451,19 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 - `mesh.py`: meshio/LS-DYNA keyword から節点・要素を読み、中心計算、part 抽出、領域選択などを行うモデル本体。
 - `mesh_node.py`: 節点集合の読書き、移動、拡大縮小、回転。
 - `mesh_elem.py`: 要素集合の読書き、隣接検索、part 割当・変更。
-- `mesh_edge.py`: 要素から辺/面集合を生成し、法線・長さ・中点を計算。
-- `mesh_tool.py`: shell メッシュの厚さ方向押出し。
-- `mesh_rve.py`: 2D/3D RVE の周期境界・多点拘束条件生成。
-- `cohesive_zone.py`: 粒子/母材界面の節点複製と cohesive 要素挿入。
 - `keyword_file.py`: LS-DYNA keyword セクションの抽出・コメント除去。
 - `keyword_format.py`: LS-DYNA 固定幅カードの出力補助。
-- `euler_angles.py`: Euler 角テキストの読書き。
 - `mesh_dict.py`: meshio と本実装の要素型名対応表。
+
+### `src/mapping`
+
+- `spatial_model.py`: keywordメッシュから節点・要素・partの空間CSVを生成する。
+- `spatial_model_plot.py`: CSVの節点接続を復元し、z層ごとのpartマップを描画する。
 
 ### `src/crystal_plasticity`
 
 - `voro_seeds.py`: 粒径と領域から Voronoi seed 点を生成。
 - `voro_seeds_to_mesh.py`: 要素中心と seed の距離から part ID を割り当て。
-- `ebsd.py`, `ebsd_points.py`, `ebsd_grains.py`: EBSD 点・粒情報の読込みと座標変換。
-- `ebsd_to_mesh*.py`: EBSD 点群とメッシュ領域を分割し、要素へ粒 ID を写像。
 
 ### `src/extract_process`
 
@@ -449,10 +475,7 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 ### `src/others`
 
 - `id_array_tools.py`: ID と配列 index の高速対応表。
-- `geometry_tools.py`: 矩形領域、凸多角形、領域分割。
-- `math_tools.py`: ベクトル、法線、平行移動量の計算。
 - `text_tools.py`: keyword セクション・拡張子処理。
-- `plot_tools.py`: EBSD 点・メッシュ要素の簡易可視化。
 
 ## 10. 外部コード
 
@@ -475,7 +498,7 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 1. 実行条件の多くは CLI 引数ではなく、各スクリプト冒頭の `RHO`, `SEED` などの定数で指定する。
 2. 座標処理は 151×151 の行優先規則格子、および指定された表面節点 ID 範囲に強く依存する。
 3. `make_partsmat.py` の材料定数とユーザー材料カード構造はコード内に固定されている。
-4. `id_set.py` は texture 5 種 × sd 9 種を一括処理し、どれかの入力不足でも例外で停止する。
+4. `id_set.py` は texture 5 種 × sd 9 種を走査し、ケースの生データフォルダが存在しない場合はその処理をスキップする。存在するフォルダ内で必要なファイルが不足している場合は例外で停止する。
 5. `partset.py` は生成 JSON を `partset_seedN.json` に書く一方、完了表示では `.k.json` を指すため表示名が実ファイルと一致しない。
 6. `SurfaceRoughnessAnalyzer.analyze_df()` の `num_nodes` は現状 `len(df) + 1` であり、実データ行数より 1 大きい値を記録する。
 7. `pyproject.toml` に NumPy 等のランタイム依存関係が未登録である。
@@ -596,7 +619,7 @@ Run Python commands from the repository root so that the `src` package can be re
 
 - LS-DYNA / SuperDyna4: simulation solver and execution environment
 - LS-PrePost 4.9: result extraction from `d3plot`
-- MATLAB and MTEX 5.11.1: orientation generation, pole figures, and misorientation processing
+- MATLAB and MTEX 5.11.1: orientation generation, pole figures, grain rotation, GOS, and IPF colour processing
 - Windows PowerShell/batch: preparation and execution on SuperDyna4
 
 `tools/superdyna4/extract_surface_coords.py` uses the following fixed LS-PrePost path:
@@ -625,6 +648,8 @@ pipeline/
 │   ├── angles/{rawdata,id_set}
 │   `-- shear_strains/{rawdata,id_set}
 ├── src/                                # reusable implementation
+│   `-- mapping/                        # spatial-model export and layer mapping
+├── tools/mapping/                      # mapping entry points
 ├── tools/preprocess/                   # model-generation entry points
 ├── tools/superdyna4/                   # d3plot extraction on the solver host
 ├── tools/postprocess/                  # local post-processing and plotting
@@ -876,7 +901,7 @@ The implementation validates required columns, numeric conversion, and duplicate
 |---|---|
 | `tools/postprocess/plot_for_textile.py` | Plots Sa/Sq/Sz and L1/L2/L3 profiles by orientation and state; converts height from mm to µm by multiplying by 1000 |
 | `tools/postprocess/post_polefigure.m` | Pole-figure processing with MTEX |
-| `tools/postprocess/misorientation.m` | Orientation-difference and misorientation calculations |
+| `tools/postprocess/grain_orientation_metrics.m` | Grain-average rotation, GOS, and IPF colour calculations with MTEX |
 | `tools/postprocess/post_main.py` | Coordinates, roughness, and line-extraction orchestration |
 | `tools/postprocess/id_set.py` | Element/part-normalized output generation |
 
@@ -898,21 +923,19 @@ The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 - `mesh.py`: main mesh abstraction for meshio/LS-DYNA keyword input, element centers, region selection, and part extraction.
 - `mesh_node.py`: node-set I/O, translation, scaling, and rotation.
 - `mesh_elem.py`: element-set I/O, adjacency searches, and part assignment.
-- `mesh_edge.py`: edge/face generation and normal, length, and midpoint calculations.
-- `mesh_tool.py`: extrusion of shell meshes through the thickness.
-- `mesh_rve.py`: periodic and multipoint constraints for 2D/3D RVEs.
-- `cohesive_zone.py`: node duplication and cohesive-element insertion at interfaces.
 - `keyword_file.py`: keyword-section parsing and comment removal.
 - `keyword_format.py`: fixed-width LS-DYNA card formatting.
-- `euler_angles.py`: Euler-angle text I/O.
 - `mesh_dict.py`: element-type mappings between meshio and this implementation.
+
+### `src/mapping`
+
+- `spatial_model.py`: exports node, element, and part geometry from a keyword mesh.
+- `spatial_model_plot.py`: reconstructs element connectivity and plots each z layer.
 
 ### `src/crystal_plasticity`
 
 - `voro_seeds.py`: creates Voronoi seed points from region and grain-size parameters.
 - `voro_seeds_to_mesh.py`: assigns part IDs from element-center-to-seed distances.
-- `ebsd.py`, `ebsd_points.py`, `ebsd_grains.py`: EBSD data loading and coordinate transformations.
-- `ebsd_to_mesh*.py`: partitions EBSD point clouds and mesh regions and maps grain IDs to elements.
 
 ### `src/extract_process`
 
@@ -924,10 +947,7 @@ The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 ### `src/others`
 
 - `id_array_tools.py`: ID-to-array-index mappings.
-- `geometry_tools.py`: rectangular/convex regions and spatial partitioning.
-- `math_tools.py`: vector, normal, and translation calculations.
 - `text_tools.py`: keyword-section and extension utilities.
-- `plot_tools.py`: basic EBSD-point and mesh-element visualization.
 
 ## 10. External Code
 
@@ -950,7 +970,7 @@ After a failed run, check for empty or incomplete files before restarting.
 1. Many case parameters are constants such as `RHO` and `SEED` at the beginning of each script rather than CLI arguments.
 2. Coordinate processing depends on a row-major 151-by-151 grid and a fixed surface-node ID range.
 3. Material constants and the user-material card structure are hard-coded in `make_partsmat.py`.
-4. `id_set.py` processes five textures by nine `sd` values as one batch and stops when any required input is missing.
+4. `id_set.py` scans five textures by nine `sd` values and skips a case when its raw-data directory does not exist. It still stops if required files are missing inside an existing directory.
 5. `partset.py` writes `partset_seedN.json`, but its completion message reports a `.k.json` path.
 6. `SurfaceRoughnessAnalyzer.analyze_df()` currently records `num_nodes` as `len(df) + 1`, one greater than the actual row count.
 7. Runtime dependencies such as NumPy are not declared in `pyproject.toml`.

@@ -12,7 +12,7 @@ from src.config.pipeline_paths import (
 from src.extract_process.eid_pid_mapping import ElementPartMapper
 
 # Settings
-RHO = 1
+RHO = 0
 SEED = 1
 
 EULER_COLUMNS = [
@@ -595,45 +595,54 @@ def main() -> None:
     seed = SEED
     rho_value = RHO
 
+    pre_dirs = build_pre_directories(
+        seed=seed,
+        rho=rho_value,
+    )
+    post_dirs = build_post_directories(
+        rho=rho_value,
+        seed=seed,
+    )
+
     for texture in texture_list:
         for sd_value in sd_values:
-            pre_dirs = build_pre_directories(
-                seed=seed,
-                rho=rho_value,
-            )
-            post_dirs = build_post_directories(
-                rho=rho_value,
-                seed=seed,
+            angle_raw_output_dir = post_dirs.raw_angle_dir / (
+                f"bunge_euler_{texture}_sd{sd_value}_seed{seed}"
             )
 
-            input_euler_path = _resolve_input_euler_path(
-                texture=texture,
-                sd_value=sd_value,
-                seed=seed,
-                pre_dirs=pre_dirs,
-            )
-
-            angle_paths = EulerStatePaths(
-                partset_path=pre_dirs.partset,
-                input_euler_path=input_euler_path,
-                raw_output_dir=post_dirs.raw_angle_dir
-                / f"bunge_euler_{texture}_sd{sd_value}_seed{seed}",
-                output_dir=post_dirs.id_set_angle_dir
-                / f"id_set_bunge_euler_{texture}_sd{sd_value}_seed{seed}",
-                raw_filename_template=(
-                    f"bunge_euler_{texture}_sd{sd_value}_seed{seed}_state{{state:02d}}.csv"
-                ),
-                output_filename_template=(
-                    f"bunge_euler_{texture}_sd{sd_value}_seed{seed}_state{{state:02d}}.csv"
-                ),
-            )
-
-            generate_euler_state_csvs(
-                angle_paths,
-                first_state=1,
-                last_state=13,
-                overwrite=False,
-            )
+            if not angle_raw_output_dir.is_dir():
+                print(
+                    "raw Euler-angle directory does not exist, skip: "
+                    f"{angle_raw_output_dir}"
+                )
+            else:
+                input_euler_path = _resolve_input_euler_path(
+                    texture=texture,
+                    sd_value=sd_value,
+                    seed=seed,
+                    pre_dirs=pre_dirs,
+                )
+                angle_paths = EulerStatePaths(
+                    partset_path=pre_dirs.partset,
+                    input_euler_path=input_euler_path,
+                    raw_output_dir=angle_raw_output_dir,
+                    output_dir=post_dirs.id_set_angle_dir
+                    / f"id_set_bunge_euler_{texture}_sd{sd_value}_seed{seed}",
+                    raw_filename_template=(
+                        f"bunge_euler_{texture}_sd{sd_value}_seed{seed}_"
+                        "state{state:02d}.csv"
+                    ),
+                    output_filename_template=(
+                        f"bunge_euler_{texture}_sd{sd_value}_seed{seed}_"
+                        "state{state:02d}.csv"
+                    ),
+                )
+                generate_euler_state_csvs(
+                    angle_paths,
+                    first_state=1,
+                    last_state=13,
+                    overwrite=False,
+                )
 
             shear_paths = ShearStrainStatePaths(
                 partset_path=pre_dirs.partset,
@@ -649,12 +658,18 @@ def main() -> None:
                 ),
             )
 
-            generate_shear_strain_state_csvs(
-                shear_paths,
-                first_state=1,
-                last_state=13,
-                overwrite=False,
-            )
+            if not shear_paths.raw_output_dir.is_dir():
+                print(
+                    "raw shear-strain directory does not exist, skip: "
+                    f"{shear_paths.raw_output_dir}"
+                )
+            else:
+                generate_shear_strain_state_csvs(
+                    shear_paths,
+                    first_state=1,
+                    last_state=13,
+                    overwrite=False,
+                )
 
 
 if __name__ == "__main__":

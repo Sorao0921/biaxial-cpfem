@@ -9,6 +9,7 @@ PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
+from src.config.pipeline_paths import build_mapping_directories, build_post_directories
 from src.mapping.orientation_metric_plot import plot_orientation_metric_layers
 
 # ============================================================
@@ -49,19 +50,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def rho_dir_name(rho: float) -> str:
-    return f"rho_{rho:g}"
-
-
 def default_directories(rho: float, seed: int) -> tuple[Path, Path, Path]:
-    rho_name = rho_dir_name(rho)
-    angle_dir = (
-        PIPELINE_DIR / "outputs" / rho_name / f"{rho_name}_seed{seed}" / "angles"
+    post_paths = build_post_directories(rho, seed)
+    mapping_paths = build_mapping_directories(seed)
+    return (
+        post_paths.orientation_metrics_dir,
+        post_paths.orientation_plots_dir,
+        mapping_paths.spatial_model_dir,
     )
-    metrics_root = angle_dir / "grain_orientation_metrics"
-    plots_root = angle_dir / "grain_orientation_plots"
-    spatial_model_dir = PIPELINE_DIR / "database" / "spatial_model" / f"seed{seed}"
-    return metrics_root, plots_root, spatial_model_dir
 
 
 def find_metric_csvs(metrics_root: Path) -> list[Path]:

@@ -531,6 +531,28 @@ python tools/postprocess/plot_for_textile.py
 
 実行前には、対象 `rho` / `seed` に対して `build_pre_directories()` と `build_post_directories()` が返すパスに必要ファイルがそろっていることを確認する。
 
+## 14. Theme 1: 表面あれへの寄与重み
+
+GOS、結晶粒回転、累積せん断ひずみと表面あれの関連度を、表面要素単位の標準化重回帰で推定する。
+
+```bash
+python tools/theme1/estimate_contributions.py
+```
+
+実行中は、条件絞り込み後の全ケース数に対する完了数、進捗率、処理速度、残り時間をプログレスバーで表示する。
+
+Theme 1では端部除去済み座標を使わず、`coords/rawdata` の表面全体を使用する。各節点の高さから最小二乗基準面を除き、表面要素を構成する節点の絶対高さ偏差の平均を目的変数とする。GOSと粒回転はpart ID、累積せん断ひずみはelement IDで空間モデルに結合する。
+
+全ケースを一括推定する場合、各変数をケース内で標準化し、要素数によらず各ケースの総重みが等しくなるよう回帰する。出力先は既定で `database/theme1/contributions/` である。
+
+| ファイル | 内容 |
+|---|---|
+| `contribution_weights.csv` | 標準化係数と、その絶対値を合計100%に正規化した寄与重み |
+| `case_coefficients.csv` | ケース別の標準化係数と決定係数 |
+| `diagnostics.json` | ケース数、サンプル数、全体の決定係数、目的変数の定義 |
+
+条件を限定する場合は `--rho`, `--seed`, `--texture`, `--sd`, `--state` を指定する。推定値は観測上の関連度であり、因果効果を意味しない。GOSと粒回転の相関が強い場合、個別の係数は不安定になり得るため、ケース別係数と決定係数も併せて確認する。
+
 ---
 
 # English Specification

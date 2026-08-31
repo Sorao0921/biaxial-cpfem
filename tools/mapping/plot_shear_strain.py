@@ -8,6 +8,7 @@ PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
+from src.config.pipeline_paths import build_mapping_directories, build_post_directories
 from src.mapping.shear_strain_plot import METRICS, plot_shear_strain_layers
 
 RHO = 1
@@ -43,14 +44,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def default_directories(rho: float, seed: int) -> tuple[Path, Path, Path]:
-    rho_name = f"rho_{rho:g}"
-    root = (
-        PIPELINE_DIR / "outputs" / rho_name / f"{rho_name}_seed{seed}" / "shear_strains"
-    )
+    post_paths = build_post_directories(rho, seed)
+    mapping_paths = build_mapping_directories(seed)
     return (
-        root / "id_set",
-        root / "figures" / "contours",
-        PIPELINE_DIR / "database" / "spatial_model" / f"seed{seed}",
+        post_paths.id_set_shear_strain_dir,
+        post_paths.shear_strain_contours_dir,
+        mapping_paths.spatial_model_dir,
     )
 
 

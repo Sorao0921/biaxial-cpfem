@@ -45,3 +45,14 @@ def test_classification_id_set_shear() -> None:
     )
     assert result.role == "accumulated_shear_strain"
     assert result.priority == 10
+
+
+def test_parse_state_from_plot_parent_directory() -> None:
+    path = Path(
+        "outputs/rho_1/rho_1_seed1/angles/grain_orientation_plots/"
+        "id_set_bunge_euler_cube_sd2_seed1/"
+        "grain_metrics_cube_sd2_seed1_state01_to_state13/gos_surface.png"
+    )
+    case = parse_case(path)
+    assert case.state == 13
+    assert case.complete

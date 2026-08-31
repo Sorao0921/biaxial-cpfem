@@ -3,7 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+INPUTS_DIR = PROJECT_ROOT / "inputs"
+MODELS_DIR = PROJECT_ROOT / "models"
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+DATABASE_DIR = PROJECT_ROOT / "database"
+ANALYSIS_DATABASE = DATABASE_DIR / "analysis.db"
+SPATIAL_MODELS_DIR = DATABASE_DIR / "spatial_model"
+THEME1_DIR = DATABASE_DIR / "theme1"
+
+# Kept as a compatibility alias for callers that imported ROOT previously.
+ROOT = PROJECT_ROOT
 
 
 @dataclass(frozen=True)
@@ -28,16 +38,24 @@ class PreDirectories:
 class PostDirectories:
     """Directories used when processing analysis results."""
 
+    model_dir: Path
+    equivalent_strain_csv: Path
+
     raw_coords_dir: Path
     edge_dropped_dir: Path
     lines_dir: Path
     roughness_dir: Path
+    coords_figures_dir: Path
+    height_contours_dir: Path
 
     raw_angle_dir: Path
     id_set_angle_dir: Path
+    orientation_metrics_dir: Path
+    orientation_plots_dir: Path
 
     raw_shear_strain_dir: Path
     id_set_shear_strain_dir: Path
+    shear_strain_contours_dir: Path
 
 
 @dataclass(frozen=True)
@@ -65,12 +83,9 @@ def build_pre_directories(
 
     rho_name = rho_dir_name(rho)
 
-    inputs_dir = ROOT / "inputs"
-    models_dir = ROOT / "models"
-
-    keyword_dir = inputs_dir / "keywords"
-    orientation_dir = inputs_dir / "orientation"
-    partsmat_root_dir = inputs_dir / "partsmat"
+    keyword_dir = INPUTS_DIR / "keywords"
+    orientation_dir = INPUTS_DIR / "orientation"
+    partsmat_root_dir = INPUTS_DIR / "partsmat"
 
     consts_dir = keyword_dir / "consts"
     rho_keyword_dir = keyword_dir / f"keyword_{rho_name}"
@@ -90,7 +105,7 @@ def build_pre_directories(
     orientation_csv_dir = orientation_dir / f"texture_seed{seed}"
     partsmat_dir = partsmat_root_dir / f"partsmat_seed{seed}"
 
-    pre_model_dir = models_dir / rho_name / f"{rho_name}_seed{seed}"
+    pre_model_dir = MODELS_DIR / rho_name / f"{rho_name}_seed{seed}"
 
     keywordset = pre_model_dir / f"keywordset_seed{seed}.k"
     merged_dir = pre_model_dir / f"merged_seed{seed}"
@@ -117,9 +132,7 @@ def build_post_directories(
 
     rho_name = rho_dir_name(rho)
 
-    outputs_dir = ROOT / "outputs"
-    # Contents of outputs_dir:
-    post_model_dir = outputs_dir / rho_name / f"{rho_name}_seed{seed}"
+    post_model_dir = OUTPUTS_DIR / rho_name / f"{rho_name}_seed{seed}"
     coords_dir = post_model_dir / "coords"
     angle_dir = post_model_dir / "angles"
     shear_strain_dir = post_model_dir / "shear_strains"
@@ -128,32 +141,48 @@ def build_post_directories(
     edge_dropped_dir = coords_dir / "edge_dropped"
     lines_dir = coords_dir / "lines"
     roughness_dir = coords_dir / "roughness"
+    coords_figures_dir = coords_dir / "figures"
     # Contents of angle_dir:
     raw_angle_dir = angle_dir / "rawdata"
     id_set_angle_dir = angle_dir / "id_set"
+    orientation_metrics_dir = angle_dir / "grain_orientation_metrics"
+    orientation_plots_dir = angle_dir / "grain_orientation_plots"
     # Contents of shear_strain_dir:
     raw_shear_strain_dir = shear_strain_dir / "rawdata"
     id_set_shear_strain_dir = shear_strain_dir / "id_set"
 
     return PostDirectories(
+        model_dir=post_model_dir,
+        equivalent_strain_csv=post_model_dir / "eps_equivalent.csv",
         raw_coords_dir=raw_coords_dir,
         edge_dropped_dir=edge_dropped_dir,
         lines_dir=lines_dir,
         roughness_dir=roughness_dir,
+        coords_figures_dir=coords_figures_dir,
+        height_contours_dir=coords_figures_dir / "height_contours",
         raw_angle_dir=raw_angle_dir,
         id_set_angle_dir=id_set_angle_dir,
+        orientation_metrics_dir=orientation_metrics_dir,
+        orientation_plots_dir=orientation_plots_dir,
         raw_shear_strain_dir=raw_shear_strain_dir,
         id_set_shear_strain_dir=id_set_shear_strain_dir,
+        shear_strain_contours_dir=shear_strain_dir / "figures" / "contours",
     )
 
 
 def build_mapping_directories(seed: int) -> MappingDirectories:
     """Build paths for the solver-independent spatial model and its plots."""
-    input_keyword = ROOT / "inputs" / "keywords" / "consts" / f"partset_seed{seed}.k"
-    spatial_model_dir = ROOT / "database" / "spatial_model" / f"seed{seed}"
+    input_keyword = INPUTS_DIR / "keywords" / "consts" / f"partset_seed{seed}.k"
+    spatial_model_dir = build_spatial_model_dir(seed)
 
     return MappingDirectories(
         input_keyword=input_keyword,
         spatial_model_dir=spatial_model_dir,
         plots_dir=spatial_model_dir / "plots",
     )
+
+
+def build_spatial_model_dir(seed: int) -> Path:
+    """Return the solver-independent spatial-model directory for one seed."""
+
+    return SPATIAL_MODELS_DIR / f"seed{seed}"

@@ -49,15 +49,25 @@ def _case_from_path(path: Path) -> tuple[float, int, str, int, int] | None:
     )
 
 
-def scan_outputs(outputs_dir: Path | str) -> list[OutputRecord]:
+def scan_outputs(
+    outputs_dir: Path | str, *, prefer_raw_height: bool = False
+) -> list[OutputRecord]:
     """Build a lightweight catalog of plottable output CSV files."""
     outputs_dir = Path(outputs_dir)
     records: dict[tuple[MetricKind, float, int, str, int, int], OutputRecord] = {}
 
-    # Prefer edge-dropped coordinates because they already exclude the clamped rim.
+    # The comparison UI prefers the unclamped interior. Theme 1 can explicitly
+    # use the complete raw surface, including the edge, for its regression.
     height_patterns = (
-        ("coords/edge_dropped/**/*.csv", "edge_dropped"),
-        ("coords/rawdata/**/*.csv", "rawdata"),
+        (
+            ("coords/rawdata/**/*.csv", "rawdata"),
+            ("coords/edge_dropped/**/*.csv", "edge_dropped"),
+        )
+        if prefer_raw_height
+        else (
+            ("coords/edge_dropped/**/*.csv", "edge_dropped"),
+            ("coords/rawdata/**/*.csv", "rawdata"),
+        )
     )
     for pattern, source in height_patterns:
         for path in outputs_dir.glob(f"rho_*/rho_*_seed*/{pattern}"):

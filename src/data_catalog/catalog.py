@@ -14,9 +14,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from src.config.pipeline_paths import ANALYSIS_DATABASE, PROJECT_ROOT
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATABASE = ROOT / "database" / "analysis.db"
+ROOT = PROJECT_ROOT
+DEFAULT_DATABASE = ANALYSIS_DATABASE
 
 CASE_RE = re.compile(
     r"(?P<texture>brass|copper|cube|goss|s)_(?:sd|sigma)(?P<sd>\d+)_seed(?P<seed>\d+)",
@@ -283,7 +284,10 @@ def parse_case(relative_path: Path) -> CaseFields:
     text = relative_path.as_posix()
     rho_match = RHO_RE.search(text)
     case_match = CASE_RE.search(text)
-    state_matches = list(STATE_RE.finditer(relative_path.name))
+    # Some derived figures keep the target state in a parent directory (for
+    # example ``state01_to_state13/gos_*.png``), not in the filename itself.
+    # The final state token in the full path is consistently the target state.
+    state_matches = list(STATE_RE.finditer(text))
     seed_match = SEED_RE.search(text)
     return CaseFields(
         rho=float(rho_match.group("rho")) if rho_match else None,

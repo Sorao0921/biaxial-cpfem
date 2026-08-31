@@ -7,20 +7,20 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from src.config.pipeline_paths import build_post_directories
 
 # ============================================================
 # Settings
 # ============================================================
-RHO = -0.5
-SEED = 1
+RHO = 1
+SEED = 2
 # change the value of rho and seed for different post-processing directories
 
-POST_DIR = Path(__file__).resolve().parents[1] / "post" / f"rho_{RHO}" / f"seed_{SEED}"
-
-EPS_EQ_CSV = POST_DIR / "eps_equivalent.csv"
-ROUGHNESS_DIR = POST_DIR / "coords" / "roughness"
-LINES_DIR = POST_DIR / "coords" / "lines"
-OUTPUT_DIR = POST_DIR / "coords" / "figures"
+POST_PATHS = build_post_directories(RHO, SEED)
+EPS_EQ_CSV = POST_PATHS.equivalent_strain_csv
+ROUGHNESS_DIR = POST_PATHS.roughness_dir
+LINES_DIR = POST_PATHS.lines_dir
+OUTPUT_DIR = POST_PATHS.coords_figures_dir
 
 ORIENTATIONS = ["cube", "goss", "brass", "copper", "s"]
 METRICS = ["sa", "sq", "sz"]

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import io
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 
+from src.config.pipeline_paths import OUTPUTS_DIR, build_spatial_model_dir
 from src.dashboard.catalog import OutputRecord, available_values, filter_records, scan_outputs
 from src.dashboard.plots import (
     height_figure,
@@ -15,10 +15,6 @@ from src.dashboard.plots import (
     read_height,
     shear_figure,
 )
-
-ROOT = Path(__file__).resolve().parents[2]
-OUTPUTS_DIR = ROOT / "outputs"
-SPATIAL_MODEL_DIR = ROOT / "database" / "spatial_model"
 
 st.set_page_config(page_title="Simulation Map Comparison", page_icon="◫", layout="wide")
 
@@ -132,7 +128,7 @@ if mode == "パラメータを変えて同じ指標を比較":
                 f"{metric}_{varying}_{getattr(record, varying)}",
                 orientation_figure(
                     record.path,
-                    SPATIAL_MODEL_DIR / f"seed{record.seed}",
+                    build_spatial_model_dir(record.seed),
                     metric=metric,
                     title=f"{metric_label} | {varying} = {getattr(record, varying):g}",
                     value_range=shared_range,
@@ -178,7 +174,7 @@ else:
             "gos",
             orientation_figure(
                 orientation_record.path,
-                SPATIAL_MODEL_DIR / f"seed{orientation_record.seed}",
+                build_spatial_model_dir(orientation_record.seed),
                 metric="gos",
                 title="Grain orientation spread",
             ),
@@ -187,7 +183,7 @@ else:
             "grain_rotation",
             orientation_figure(
                 orientation_record.path,
-                SPATIAL_MODEL_DIR / f"seed{orientation_record.seed}",
+                build_spatial_model_dir(orientation_record.seed),
                 metric="rotation",
                 title="Grain rotation",
             ),
@@ -196,7 +192,7 @@ else:
             "accumulated_shear_strain",
             shear_figure(
                 shear_record.path,
-                SPATIAL_MODEL_DIR / f"seed{shear_record.seed}",
+                build_spatial_model_dir(shear_record.seed),
                 title="Accumulated shear strain",
             ),
         ),

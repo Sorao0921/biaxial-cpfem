@@ -9,11 +9,12 @@ PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
+from src.config.pipeline_paths import build_post_directories
 from src.mapping.surface_height_plot import plot_surface_height_contour
 
 # Settings used when running this file with the VS Code Run button.
-RHO = 1
-SEED = 2
+RHO = 0
+SEED = 1
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,16 +49,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def rho_dir_name(rho: float) -> str:
-    return f"rho_{rho:g}"
-
-
 def default_directories(rho: float, seed: int) -> tuple[Path, Path]:
-    rho_name = rho_dir_name(rho)
-    coords_dir = (
-        PIPELINE_DIR / "outputs" / rho_name / f"{rho_name}_seed{seed}" / "coords"
-    )
-    return coords_dir / "rawdata", coords_dir / "figures" / "height_contours"
+    paths = build_post_directories(rho, seed)
+    return paths.raw_coords_dir, paths.height_contours_dir
 
 
 def main() -> None:

@@ -4,19 +4,19 @@ import argparse
 import json
 from pathlib import Path
 
+from tqdm.auto import tqdm
+
 from src.config.pipeline_paths import OUTPUTS_DIR, SPATIAL_MODELS_DIR, THEME1_DIR
 from src.dashboard.catalog import scan_outputs
 from src.theme1.contribution import complete_cases, estimate_contributions
-from tqdm.auto import tqdm
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Estimate GOS, grain-rotation, and shear-strain weights for surface roughness."
     )
     parser.add_argument("--outputs", type=Path, default=OUTPUTS_DIR)
-    parser.add_argument(
-        "--spatial-models", type=Path, default=SPATIAL_MODELS_DIR
-    )
+    parser.add_argument("--spatial-models", type=Path, default=SPATIAL_MODELS_DIR)
     parser.add_argument(
         "--output-dir",
         type=Path,

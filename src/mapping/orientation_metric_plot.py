@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Normalize
 
+from src.mapping.plot_style import GOS_RANGE, GRAIN_ROTATION_RANGE
 from src.mapping.spatial_model_plot import _projected_polygons, load_spatial_model
 
 
@@ -81,7 +82,8 @@ def plot_orientation_metric_layers(
         finite = mapped[np.isfinite(mapped)]
         if not len(finite):
             raise ValueError(f"No finite {metric} values to plot.")
-        lower, upper = float(finite.min()), float(finite.max())
+        fixed_ranges = {"gos": GOS_RANGE, "rotation": GRAIN_ROTATION_RANGE}
+        lower, upper = fixed_ranges[metric]
         if np.isclose(lower, upper):
             upper = lower + max(abs(lower), 1.0) * 1.0e-12
         norm = Normalize(vmin=lower, vmax=upper)

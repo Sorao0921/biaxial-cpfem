@@ -4,6 +4,11 @@
 It stores file metadata and case relationships; it does not copy or modify the
 large simulation outputs.
 
+The scanner intentionally omits generated PNG visualizations, source code,
+bundled MATLAB/MTEX files, PDF/HTML documents, and executable binaries. These
+files remain untouched on disk; they are simply not represented in the research
+catalog.
+
 ## Case key
 
 Each analysis case is identified by:

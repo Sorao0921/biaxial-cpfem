@@ -1,0 +1,8 @@
+"""Shared display ranges for comparable contour maps."""
+
+HEIGHT_SCALE = 1.0e3
+HEIGHT_RANGE = (5.0, 10.0)
+GOS_RANGE = (0.0, 10.0)
+GRAIN_ROTATION_RANGE = (0.0, 20.0)
+ACCUMULATED_SHEAR_STRAIN_RANGE = (0.0, 1.5)
+HEIGHT_AXIS_TICK_INTERVAL = 0.1

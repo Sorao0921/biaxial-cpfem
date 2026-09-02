@@ -38,6 +38,55 @@ IGNORED_DIRS = {
     "venv",
 }
 
+# These files are useful to the application or documentation, but they are not
+# research data.  Excluding them at discovery time keeps the catalog focused
+# and also makes a subsequent scan purge any legacy records for them.
+EXCLUDED_PATH_PARTS = {
+    "mtex-5.11.1",
+}
+EXCLUDED_EXTENSIONS = {
+    # Generated visualization files
+    ".png",
+    # Documents and rendered web documentation
+    ".pdf",
+    ".html",
+    ".htm",
+    # Source code, scripts, styles, and source documents
+    ".py",
+    ".pyi",
+    ".m",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hpp",
+    ".f",
+    ".f90",
+    ".f95",
+    ".java",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".ps1",
+    ".sh",
+    ".bat",
+    ".tex",
+    ".md",
+    ".rst",
+    # Executables and compiled MATLAB/native extensions
+    ".exe",
+    ".dll",
+    ".dylib",
+    ".so",
+    ".class",
+    ".mexw64",
+    ".mexa64",
+    ".mexmaci64",
+    ".mexmaca64",
+}
+
 
 @dataclass(frozen=True)
 class Classification:
@@ -298,16 +347,44 @@ def parse_case(relative_path: Path) -> CaseFields:
     )
 
 
+def exclusion_reason(relative_path: Path) -> str | None:
+    """Return why a file is intentionally omitted from the research catalog."""
+
+    normalized_parts = {part.lower() for part in relative_path.parts}
+    if normalized_parts & EXCLUDED_PATH_PARTS:
+        return "bundled_matlab_mtex"
+    suffix = relative_path.suffix.lower()
+    if suffix == ".png":
+        return "visualization_png"
+    if suffix in {".pdf", ".html", ".htm"}:
+        return "document"
+    if suffix in {
+        ".exe", ".dll", ".dylib", ".so", ".class",
+        ".mexw64", ".mexa64", ".mexmaci64", ".mexmaca64",
+    }:
+        return "executable"
+    if suffix in EXCLUDED_EXTENSIONS:
+        return "source_code"
+    return None
+
+
 def iter_files(root: Path) -> Iterator[Path]:
     for directory, dirnames, filenames in os.walk(root):
-        dirnames[:] = [name for name in dirnames if name not in IGNORED_DIRS]
+        dirnames[:] = [
+            name
+            for name in dirnames
+            if name not in IGNORED_DIRS and name.lower() not in EXCLUDED_PATH_PARTS
+        ]
         base = Path(directory)
         for filename in filenames:
             if filename == ".DS_Store":
                 continue
             if filename.startswith("analysis.db-"):
                 continue
-            yield base / filename
+            path = base / filename
+            if exclusion_reason(path.relative_to(root)) is not None:
+                continue
+            yield path
 
 
 def inspect_csv(path: Path) -> tuple[str | None, str | None, str | None]:

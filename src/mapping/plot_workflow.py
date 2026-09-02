@@ -6,6 +6,7 @@ from typing import Callable, Iterable
 
 from src.config.pipeline_paths import build_mapping_directories, build_post_directories
 from src.mapping.orientation_metric_plot import plot_orientation_metric_layers
+from src.mapping.plot_style import HEIGHT_RANGE
 from src.mapping.shear_strain_plot import METRICS as SHEAR_METRICS
 from src.mapping.shear_strain_plot import plot_shear_strain_layers
 from src.mapping.surface_height_plot import plot_surface_height_contour
@@ -48,7 +49,7 @@ def plot_surface_heights(
     output_dir: Path | None = None,
     levels: int = 30,
     cmap: str = "coolwarm",
-    value_range: tuple[float, float] = (0.006, 0.01),
+    value_range: tuple[float, float] = HEIGHT_RANGE,
     dpi: int = 200,
     overwrite: bool = False,
     on_message: MessageHandler | None = None,
@@ -233,7 +234,7 @@ def plot_all_mapping_results(
     activity_threshold: float = 0.0,
     height_levels: int = 30,
     height_cmap: str = "coolwarm",
-    height_value_range: tuple[float, float] = (0.006, 0.01),
+    height_value_range: tuple[float, float] = HEIGHT_RANGE,
     all_layers: bool = False,
     dpi: int = 200,
     overwrite: bool = False,

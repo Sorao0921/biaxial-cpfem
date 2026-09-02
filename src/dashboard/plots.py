@@ -9,7 +9,9 @@ import matplotlib.tri as mtri
 import numpy as np
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Normalize
+from matplotlib.ticker import MultipleLocator
 
+from src.mapping.plot_style import HEIGHT_AXIS_TICK_INTERVAL, HEIGHT_SCALE
 from src.mapping.spatial_model_plot import _projected_polygons, load_spatial_model
 from src.mapping.shear_strain_plot import read_shear_strain_data
 
@@ -48,6 +50,7 @@ def height_figure(
     cmap: str = "coolwarm",
 ):
     x, y, z = read_height(path)
+    z = z * HEIGHT_SCALE
     triangulation = mtri.Triangulation(x, y)
     analyzer = mtri.TriAnalyzer(triangulation)
     triangulation.set_mask(analyzer.get_flat_tri_mask(min_circle_ratio=0.01))
@@ -60,8 +63,10 @@ def height_figure(
     axis.set_aspect("equal", adjustable="box")
     axis.set_xlabel("x")
     axis.set_ylabel("y")
+    axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.set_title(title)
-    figure.colorbar(contour, ax=axis, label="Surface height z")
+    figure.colorbar(contour, ax=axis, label=r"Surface height $z$ ($\times 10^{-3}$)")
     return figure
 
 

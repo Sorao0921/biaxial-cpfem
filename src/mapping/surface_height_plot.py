@@ -6,6 +6,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
+from matplotlib.ticker import MultipleLocator
+
+from src.mapping.plot_style import (
+    HEIGHT_AXIS_TICK_INTERVAL,
+    HEIGHT_RANGE,
+    HEIGHT_SCALE,
+)
 
 
 def read_surface_coordinates(path: Path | str) -> np.ndarray:
@@ -48,7 +55,7 @@ def plot_surface_height_contour(
     cmap: str = "coolwarm",
     dpi: int = 200,
     overwrite: bool = False,
-    value_range: tuple[float, float] = (0.006, 0.01),
+    value_range: tuple[float, float] = HEIGHT_RANGE,
 ) -> Path:
     """Plot the deformed surface height z over its current x-y coordinates."""
     if levels < 2:
@@ -60,6 +67,7 @@ def plot_surface_height_contour(
     coordinates_csv = Path(coordinates_csv)
     coordinates = read_surface_coordinates(coordinates_csv)
     x, y, z = coordinates.T
+    z = z * HEIGHT_SCALE
     lower, upper = value_range
     if not np.isfinite([lower, upper]).all() or lower > upper:
         raise ValueError("value_range must contain finite values in increasing order")
@@ -80,8 +88,10 @@ def plot_surface_height_contour(
     axis.set_aspect("equal", adjustable="box")
     axis.set_xlabel("x")
     axis.set_ylabel("y")
+    axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.set_title(f"Deformed surface height | {coordinates_csv.stem}")
-    figure.colorbar(contour, ax=axis, label="z")
+    figure.colorbar(contour, ax=axis, label=r"$z$ ($\times 10^{-3}$)")
     figure.savefig(output_path, dpi=dpi, facecolor="white")
     plt.close(figure)
     return output_path

@@ -3,7 +3,6 @@ from __future__ import annotations
 import io
 
 import matplotlib.pyplot as plt
-import numpy as np
 import streamlit as st
 
 from src.config.pipeline_paths import OUTPUTS_DIR, build_spatial_model_dir
@@ -11,9 +10,13 @@ from src.dashboard.catalog import OutputRecord, available_values, filter_records
 from src.dashboard.plots import (
     height_figure,
     orientation_figure,
-    read_grain_metric,
-    read_height,
     shear_figure,
+)
+from src.mapping.plot_style import (
+    ACCUMULATED_SHEAR_STRAIN_RANGE,
+    GOS_RANGE,
+    GRAIN_ROTATION_RANGE,
+    HEIGHT_RANGE,
 )
 
 st.set_page_config(page_title="Simulation Map Comparison", page_icon="◫", layout="wide")
@@ -22,18 +25,6 @@ st.set_page_config(page_title="Simulation Map Comparison", page_icon="◫", layo
 @st.cache_data(show_spinner="出力データを確認しています…")
 def load_catalog() -> list[OutputRecord]:
     return scan_outputs(OUTPUTS_DIR)
-
-
-@st.cache_data(show_spinner=False)
-def height_range(paths: tuple[str, ...]) -> tuple[float, float]:
-    ranges = [read_height(path)[2] for path in paths]
-    return float(min(np.nanmin(v) for v in ranges)), float(max(np.nanmax(v) for v in ranges))
-
-
-@st.cache_data(show_spinner=False)
-def metric_range(paths: tuple[str, ...], metric: str) -> tuple[float, float]:
-    values = [value for path in paths for value in read_grain_metric(path, metric).values()]
-    return float(np.nanmin(values)), float(np.nanmax(values))
 
 
 def pick(label: str, values, key: str):
@@ -106,9 +97,8 @@ if mode == "パラメータを変えて同じ指標を比較":
     if not selected:
         st.warning("この条件に表示可能なマップがありません。")
         st.stop()
-    paths = tuple(str(record.path) for record in selected)
     if kind == "height":
-        shared_range = height_range(paths)
+        shared_range = HEIGHT_RANGE
         figures = [
             (
                 f"height_{varying}_{getattr(record, varying)}",
@@ -122,7 +112,7 @@ if mode == "パラメータを変えて同じ指標を比較":
         ]
     else:
         metric = "gos" if metric_label == "GOS" else "rotation"
-        shared_range = metric_range(paths, metric)
+        shared_range = GOS_RANGE if metric == "gos" else GRAIN_ROTATION_RANGE
         figures = [
             (
                 f"{metric}_{varying}_{getattr(record, varying)}",
@@ -163,12 +153,10 @@ else:
     )[0]
     shear_record = filter_records(records, kind="shear", **filters)[0]
 
-    height_values = read_height(height_record.path)[2]
-    height_limits = (float(np.nanmin(height_values)), float(np.nanmax(height_values)))
     figures = [
         (
             "height",
-            height_figure(height_record.path, title="Surface height", value_range=height_limits),
+            height_figure(height_record.path, title="Surface height", value_range=HEIGHT_RANGE),
         ),
         (
             "gos",
@@ -177,6 +165,7 @@ else:
                 build_spatial_model_dir(orientation_record.seed),
                 metric="gos",
                 title="Grain orientation spread",
+                value_range=GOS_RANGE,
             ),
         ),
         (
@@ -186,6 +175,7 @@ else:
                 build_spatial_model_dir(orientation_record.seed),
                 metric="rotation",
                 title="Grain rotation",
+                value_range=GRAIN_ROTATION_RANGE,
             ),
         ),
         (
@@ -194,6 +184,7 @@ else:
                 shear_record.path,
                 build_spatial_model_dir(shear_record.seed),
                 title="Accumulated shear strain",
+                value_range=ACCUMULATED_SHEAR_STRAIN_RANGE,
             ),
         ),
     ]

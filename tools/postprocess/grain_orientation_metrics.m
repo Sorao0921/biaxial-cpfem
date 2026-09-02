@@ -10,8 +10,8 @@ clc
 clear
 
 %% Parameters
-rho = 0;
-seed = 2;
+rho = 1;
+seed = 3;
 
 REFERENCE_STATE = 1;
 TARGET_STATES = 2:13;

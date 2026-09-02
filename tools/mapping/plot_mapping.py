@@ -8,6 +8,7 @@ PIPELINE_DIR = Path(__file__).resolve().parents[2]
 if str(PIPELINE_DIR) not in sys.path:
     sys.path.insert(0, str(PIPELINE_DIR))
 
+from src.mapping.plot_style import HEIGHT_RANGE
 from src.mapping.plot_workflow import (
     ORIENTATION_METRICS,
     PLOT_TYPES,
@@ -17,7 +18,7 @@ from src.mapping.plot_workflow import (
 
 # When running from VS Code's Run button, change only this section.
 RHO = -0.5
-SEED = 2
+SEED = 1
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,8 +45,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--all-layers", action="store_true")
     parser.add_argument("--height-levels", type=int, default=30)
     parser.add_argument("--height-cmap", default="coolwarm")
-    parser.add_argument("--height-vmin", type=float, default=0.006)
-    parser.add_argument("--height-vmax", type=float, default=0.01)
+    parser.add_argument("--height-vmin", type=float, default=HEIGHT_RANGE[0])
+    parser.add_argument("--height-vmax", type=float, default=HEIGHT_RANGE[1])
     parser.add_argument("--dpi", type=int, default=200)
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()

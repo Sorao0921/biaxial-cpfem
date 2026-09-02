@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.data_catalog.catalog import classify, parse_case
+from src.data_catalog.catalog import classify, exclusion_reason, parse_case
 
 
 def test_parse_complete_case() -> None:
@@ -56,3 +56,24 @@ def test_parse_state_from_plot_parent_directory() -> None:
     case = parse_case(path)
     assert case.state == 13
     assert case.complete
+
+
+def test_excludes_visualization_and_documents() -> None:
+    assert exclusion_reason(Path("outputs/case/figure.png")) == "visualization_png"
+    assert exclusion_reason(Path("docs/report.pdf")) == "document"
+    assert exclusion_reason(Path("docs/index.html")) == "document"
+
+
+def test_excludes_source_executables_and_bundled_mtex() -> None:
+    assert exclusion_reason(Path("tools/process.py")) == "source_code"
+    assert exclusion_reason(Path("external/solver.exe")) == "executable"
+    assert (
+        exclusion_reason(Path("src/mtex-5.11.1/data/example.csv"))
+        == "bundled_matlab_mtex"
+    )
+
+
+def test_keeps_research_data() -> None:
+    assert exclusion_reason(Path("outputs/rho_1/case/values.csv")) is None
+    assert exclusion_reason(Path("models/rho_1/model.k")) is None
+    assert exclusion_reason(Path("database/spatial_model/seed1/elements.csv")) is None

@@ -404,7 +404,7 @@ python tools/mapping/plot_mapping.py --rho 1 --seed 2
 既定では3系統をすべて描画する。1系統だけ再描画したい場合は、
 `--plot height`、`--plot orientation`、`--plot shear` のいずれかを指定する。
 
-出力先は `coords/figures/height_contours/{case}/`。すべての図で `z = 0.006`（青）から `z = 0.01`（赤）までの共通色範囲を使用する。必要なら `--height-vmin` と `--height-vmax` で固定範囲を変更できる。
+出力先は `coords/figures/height_contours/{case}/`。高さは $10^{-3}$ 単位に換算し、すべての図で 5（青）から10（赤）までの共通色範囲を使用する。x・y軸の主目盛りは0.1刻み。必要なら `--height-vmin` と `--height-vmax` で換算後の固定範囲を変更できる。
 
 ### 8.2 element_id / part_id の付与
 

@@ -15,7 +15,7 @@ from src.mapping.plot_workflow import (
     plot_all_mapping_results,
 )
 
-# VS Code の Run ボタンから実行するときは、ここだけ変更する。
+# When running from VS Code's Run button, change only this section.
 RHO = -0.5
 SEED = 2
 

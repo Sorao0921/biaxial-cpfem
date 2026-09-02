@@ -2,6 +2,7 @@ import re
 from pathlib import Path
 
 import pandas as pd
+
 from src.config.pipeline_paths import PostDirectories, build_post_directories
 from src.extract_process.drop_edge import EdgeDropper
 from src.extract_process.extract_lines import LineExtractor
@@ -12,7 +13,7 @@ from src.extract_process.roughness import SurfaceRoughnessAnalyzer
 # Change RHO and SEED to select another post-processing directory.
 # ============================================================
 RHO = 0
-SEED = 1
+SEED = 2
 
 
 # ===========================================================

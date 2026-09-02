@@ -73,14 +73,23 @@ run/d3plot
 - pandas
 - matplotlib
 - meshio
+- Streamlit
 - tqdm
 
-`pyproject.toml` には現時点でランタイム依存関係が列挙されていないため、必要に応じて個別に導入する。
+依存関係は `pyproject.toml`、解決済みバージョンは `uv.lock` で管理する。リポジトリを clone した後、次のコマンドで仮想環境 `.venv` と開発依存を含む環境を再現できる。
 
 ```bash
-python -m pip install -e .
-python -m pip install numpy pandas matplotlib meshio tqdm
+uv sync --frozen
 ```
+
+コマンドは `uv run` 経由で実行するため、仮想環境を手動で有効化する必要はない。
+
+```bash
+uv run pytest
+uv run python tools/UI/run_dashboard.py
+```
+
+依存関係を変更した場合は `uv add パッケージ名`、開発用依存は `uv add --dev パッケージ名` を使い、更新された `pyproject.toml` と `uv.lock` を両方コミットする。
 
 各 Python コマンドは、`src` パッケージを解決できるようリポジトリルートで実行する。
 
@@ -501,8 +510,8 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 4. `id_set.py` は texture 5 種 × sd 9 種を走査し、ケースの生データフォルダが存在しない場合はその処理をスキップする。存在するフォルダ内で必要なファイルが不足している場合は例外で停止する。
 5. `partset.py` は生成 JSON を `partset_seedN.json` に書く一方、完了表示では `.k.json` を指すため表示名が実ファイルと一致しない。
 6. `SurfaceRoughnessAnalyzer.analyze_df()` の `num_nodes` は現状 `len(df) + 1` であり、実データ行数より 1 大きい値を記録する。
-7. `pyproject.toml` に NumPy 等のランタイム依存関係が未登録である。
-8. 自動テストは現時点で用意されていない。条件変更後は小規模ケースで行数、ID 対応、keyword の `*END`、粗さ値を確認する。
+7. Python パッケージは `uv.lock` で固定されるが、LS-DYNA、LS-PrePost、MATLAB、MTEX などの外部ソフトウェアは別途用意する必要がある。
+8. 自動テストに加え、解析条件の変更後は小規模ケースで行数、ID 対応、keyword の `*END`、粗さ値も確認する。
 
 ## 13. 最短の実行順序
 
@@ -626,14 +635,23 @@ surface-coordinate / Euler-angle / shear-strain CSV files
 - pandas
 - matplotlib
 - meshio
+- Streamlit
 - tqdm
 
-Runtime dependencies are not currently declared in `pyproject.toml`; install them separately as required.
+Dependencies are declared in `pyproject.toml`, while resolved versions are recorded in `uv.lock`. After cloning the repository, reproduce the environment, including development dependencies, with:
 
 ```bash
-python -m pip install -e .
-python -m pip install numpy pandas matplotlib meshio tqdm
+uv sync --frozen
 ```
+
+Run commands through `uv run`; activating the virtual environment manually is unnecessary.
+
+```bash
+uv run pytest
+uv run python tools/UI/run_dashboard.py
+```
+
+Use `uv add PACKAGE` for runtime dependencies or `uv add --dev PACKAGE` for development dependencies, then commit both the updated `pyproject.toml` and `uv.lock`.
 
 Run Python commands from the repository root so that the `src` package can be resolved.
 
@@ -995,8 +1013,8 @@ After a failed run, check for empty or incomplete files before restarting.
 4. `id_set.py` scans five textures by nine `sd` values and skips a case when its raw-data directory does not exist. It still stops if required files are missing inside an existing directory.
 5. `partset.py` writes `partset_seedN.json`, but its completion message reports a `.k.json` path.
 6. `SurfaceRoughnessAnalyzer.analyze_df()` currently records `num_nodes` as `len(df) + 1`, one greater than the actual row count.
-7. Runtime dependencies such as NumPy are not declared in `pyproject.toml`.
-8. No automated tests are currently included. After changing assumptions, verify row counts, ID mappings, the final keyword `*END`, and roughness values with a small case.
+7. Python packages are pinned in `uv.lock`, but external software such as LS-DYNA, LS-PrePost, MATLAB, and MTEX must still be provided separately.
+8. In addition to the automated tests, verify row counts, ID mappings, the final keyword `*END`, and roughness values with a small case after changing analysis assumptions.
 
 ## 13. Minimal Execution Sequence
 

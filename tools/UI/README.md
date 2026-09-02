@@ -7,13 +7,13 @@
 リポジトリのルートで次を実行します。
 
 ```bash
-python -m pip install -e .
+uv sync --frozen
 ```
 
 ## 起動
 
 ```bash
-python tools/dashboard/run_dashboard.py
+uv run python tools/UI/run_dashboard.py
 ```
 
 ブラウザでローカルUIが開きます。初回は `outputs/` を走査するため、表示まで少し時間がかかる場合があります。
@@ -30,7 +30,7 @@ python tools/dashboard/run_dashboard.py
 `database/analysis.db` のカタログから、Theme 1に必要な表面高さ、GOS・粒回転、累積せん断ひずみ、空間モデルなどがケースごとに揃っているか確認できます。
 
 ```bash
-python tools/UI/run_readiness_dashboard.py
+uv run python tools/UI/run_readiness_dashboard.py
 ```
 
 データ別の充足率、texture別の横向き積み上げグラフ、ケースごとの不足データを表示します。`rho / seed` で絞り込みでき、ケース一覧ではpostprocessの未実行・一部不足・完了を色分けします。表示中の一覧はCSVで保存できます。

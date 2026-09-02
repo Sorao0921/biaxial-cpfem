@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+
 from src.config.pipeline_paths import build_pre_directories
 from src.pre_process.keyword_format import write_any_keyword
 
@@ -210,4 +211,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
     main()

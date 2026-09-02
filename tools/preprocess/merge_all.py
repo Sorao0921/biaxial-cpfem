@@ -10,8 +10,8 @@ from src.make_model_process.write_keyword import KeywordFiles, KeywordSetBuilder
 # Case settings
 # Change RHO and SEED to select another post-processing directory.
 # ============================================================
-RHO = 0
-SEED = 4
+RHO = 1
+SEED = 3
 
 CSV_GLOB = "*.csv"
 OVERWRITE_EXISTING = False

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+
 from src.config.pipeline_paths import build_pre_directories
 from src.crystal_plasticity.voro_seeds import voro_seeds
 from src.crystal_plasticity.voro_seeds_to_mesh import voro_seeds_to_mesh
@@ -15,7 +16,7 @@ from src.pre_process.mesh import mesh
 # Case settings
 # Change SEED to select another post-processing directory.
 # ============================================================
-SEED = 5
+SEED = 1
 
 
 # ===========================================================
@@ -164,4 +165,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
+    main()
     main()

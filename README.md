@@ -395,11 +395,16 @@ Sz = max(residual) - min(residual)
 
 `coords/rawdata` の各 `x,y,z` CSV から、変形後の `(x, y)` 座標上に高さ `z` を描画する。
 
+高さ・結晶方位指標・累積せん断ひずみの3系統は、同じ統合スクリプトで描画する。
+
 ```bash
-python tools/mapping/plot_surface_height.py --rho 1 --seed 2
+python tools/mapping/plot_mapping.py --rho 1 --seed 2
 ```
 
-出力先は `coords/figures/height_contours/{case}/`。すべての図で `z = 0.004`（青）から `z = 0.01`（赤）までの共通色範囲を使用する。必要なら `--vmin` と `--vmax` で固定範囲を変更できる。CSV を位置引数で指定すると単一ファイルだけを描画できる。
+既定では3系統をすべて描画する。1系統だけ再描画したい場合は、
+`--plot height`、`--plot orientation`、`--plot shear` のいずれかを指定する。
+
+出力先は `coords/figures/height_contours/{case}/`。すべての図で `z = 0.006`（青）から `z = 0.01`（赤）までの共通色範囲を使用する。必要なら `--height-vmin` と `--height-vmax` で固定範囲を変更できる。
 
 ### 8.2 element_id / part_id の付与
 
@@ -426,13 +431,13 @@ Euler 角:
 
 ### 8.3 描画・MATLAB 後処理
 
-累積せん断ひずみのコンターマップは次のコマンドで作成する。
+累積せん断ひずみだけを描画する場合は次のコマンドを使用する。
 
 ```bash
-python tools/mapping/plot_shear_strain.py --rho 1 --seed 1
+python tools/mapping/plot_mapping.py --rho 1 --seed 1 --plot shear
 ```
 
-`--metric` には `gamma_total`, `gamma_max`, `alpha`, `c_slip` を指定できる。省略時は4種類をすべて描画する。`--aggregation both`（既定）では、局所化を見るelementマップと、GOS・粒回転との比較に使う結晶粒マップの両方を出力する。結晶粒値は、まず粒内の各すべり系を表面要素面積で重み付き平均し、その後に4指標を計算する。すべての図に結晶粒界を重ねる。全すべり系が0の領域は `NaN` とし白色表示する。必要に応じて `--activity-threshold` に物理的な下限値を指定できる。
+`--shear-metric` には `gamma_total`, `gamma_max`, `alpha`, `c_slip` を指定できる。省略時は4種類をすべて描画する。`--aggregation both`（既定）では、局所化を見るelementマップと、GOS・粒回転との比較に使う結晶粒マップの両方を出力する。結晶粒値は、まず粒内の各すべり系を表面要素面積で重み付き平均し、その後に4指標を計算する。すべての図に結晶粒界を重ねる。全すべり系が0の領域は `NaN` とし白色表示する。必要に応じて `--activity-threshold` に物理的な下限値を指定できる。
 
 | ファイル | 主な役割 |
 |---|---|

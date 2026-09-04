@@ -38,22 +38,6 @@ def _make_database(path: Path) -> None:
             "INSERT INTO v_theme1_case_readiness VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
-        connection.execute(
-            """
-            CREATE TABLE artifacts (
-                rho REAL, seed INTEGER, texture TEXT, sd INTEGER, state INTEGER,
-                data_kind TEXT, relative_path TEXT
-            )
-            """
-        )
-        connection.executemany(
-            "INSERT INTO artifacts VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [
-                (1.0, 1, "cube", 1, 2, "figure_or_document", "outputs/rho_1/rho_1_seed1/coords/figures/height_contours/cube/state02.png"),
-                (1.0, 1, "cube", 1, 2, "figure_or_document", "outputs/rho_1/rho_1_seed1/angles/grain_orientation_plots/cube/state02/gos.png"),
-                (1.0, 1, "goss", 2, 3, "figure_or_document", "outputs/rho_1/rho_1_seed1/shear_strains/figures/goss/state03/gamma.png"),
-            ],
-        )
 
 
 def test_load_readiness_adds_human_readable_missing_items(tmp_path: Path) -> None:
@@ -80,10 +64,6 @@ def test_load_readiness_adds_human_readable_missing_items(tmp_path: Path) -> Non
     assert by_state.loc[2, "postprocess_status"] == "完了"
     assert by_state.loc[3, "postprocess_status"] == "一部不足"
     assert by_state.loc[4, "postprocess_status"] == "未実行"
-    assert by_state.loc[2, "has_height_plot"]
-    assert by_state.loc[2, "has_orientation_plot"]
-    assert not by_state.loc[2, "has_shear_plot"]
-    assert by_state.loc[3, "has_shear_plot"]
 
 
 def test_summarize_readiness_returns_counts_and_rates(tmp_path: Path) -> None:
@@ -109,9 +89,6 @@ def test_summarize_empty_frame() -> None:
         "has_spatial_model",
         "theme1_ready",
         "training_ready",
-        "has_height_plot",
-        "has_orientation_plot",
-        "has_shear_plot",
     ]
     summary = summarize_readiness(pd.DataFrame(columns=columns))
 

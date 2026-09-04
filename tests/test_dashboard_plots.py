@@ -32,7 +32,7 @@ def test_height_figure_uses_scaled_fixed_range_and_point_one_ticks(tmp_path):
 
 
 def test_metric_display_ranges_are_shared_constants():
-    assert HEIGHT_RANGE == (5.0, 10.0)
-    assert GOS_RANGE == (0.0, 10.0)
-    assert GRAIN_ROTATION_RANGE == (0.0, 20.0)
-    assert ACCUMULATED_SHEAR_STRAIN_RANGE == (0.0, 1.5)
+    assert HEIGHT_RANGE == (9.0, 10.0)
+    assert GOS_RANGE == (0.0, 3.0)
+    assert GRAIN_ROTATION_RANGE == (0.0, 5.0)
+    assert ACCUMULATED_SHEAR_STRAIN_RANGE == (0.0, 0.3)

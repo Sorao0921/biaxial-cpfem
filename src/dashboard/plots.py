@@ -13,7 +13,38 @@ from matplotlib.ticker import MultipleLocator
 
 from src.mapping.plot_style import HEIGHT_AXIS_TICK_INTERVAL, HEIGHT_SCALE
 from src.mapping.spatial_model_plot import _projected_polygons, load_spatial_model
-from src.mapping.shear_strain_plot import read_shear_strain_data
+
+TOTAL_SHEAR_COLUMN = "accumulated_shear_strain_total"
+SLIP_COLUMNS = tuple(
+    f"accumulated_shear_strain_slip{index:02d}" for index in range(1, 13)
+)
+
+
+def read_shear_strain_data(
+    path: Path | str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Read element IDs, total strain, and the 12 slip-system strains."""
+    path = Path(path)
+    with path.open(newline="", encoding="utf-8") as source:
+        reader = csv.DictReader(source)
+        required = {"element_id", TOTAL_SHEAR_COLUMN, *SLIP_COLUMNS}
+        missing = required.difference(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"Missing shear-strain columns: {sorted(missing)}")
+        rows = list(reader)
+    if not rows:
+        raise ValueError(f"Shear-strain CSV is empty: {path}")
+
+    element_ids = np.array([int(float(row["element_id"])) for row in rows])
+    if len(np.unique(element_ids)) != len(element_ids):
+        raise ValueError("Shear-strain CSV contains duplicate element_id values.")
+    gamma_total = np.array([float(row[TOTAL_SHEAR_COLUMN]) for row in rows])
+    slips = np.array(
+        [[float(row[column]) for column in SLIP_COLUMNS] for row in rows]
+    )
+    if np.any(gamma_total < 0) or np.any(slips < 0):
+        raise ValueError("Accumulated shear strains must not be negative.")
+    return element_ids, gamma_total, slips
 
 
 def read_height(path: Path | str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

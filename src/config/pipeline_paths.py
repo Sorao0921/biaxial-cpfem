@@ -45,17 +45,12 @@ class PostDirectories:
     edge_dropped_dir: Path
     lines_dir: Path
     roughness_dir: Path
-    coords_figures_dir: Path
-    height_contours_dir: Path
-
     raw_angle_dir: Path
     id_set_angle_dir: Path
     orientation_metrics_dir: Path
-    orientation_plots_dir: Path
 
     raw_shear_strain_dir: Path
     id_set_shear_strain_dir: Path
-    shear_strain_contours_dir: Path
 
 
 @dataclass(frozen=True)
@@ -141,12 +136,10 @@ def build_post_directories(
     edge_dropped_dir = coords_dir / "edge_dropped"
     lines_dir = coords_dir / "lines"
     roughness_dir = coords_dir / "roughness"
-    coords_figures_dir = coords_dir / "figures"
     # Contents of angle_dir:
     raw_angle_dir = angle_dir / "rawdata"
     id_set_angle_dir = angle_dir / "id_set"
     orientation_metrics_dir = angle_dir / "grain_orientation_metrics"
-    orientation_plots_dir = angle_dir / "grain_orientation_plots"
     # Contents of shear_strain_dir:
     raw_shear_strain_dir = shear_strain_dir / "rawdata"
     id_set_shear_strain_dir = shear_strain_dir / "id_set"
@@ -158,15 +151,11 @@ def build_post_directories(
         edge_dropped_dir=edge_dropped_dir,
         lines_dir=lines_dir,
         roughness_dir=roughness_dir,
-        coords_figures_dir=coords_figures_dir,
-        height_contours_dir=coords_figures_dir / "height_contours",
         raw_angle_dir=raw_angle_dir,
         id_set_angle_dir=id_set_angle_dir,
         orientation_metrics_dir=orientation_metrics_dir,
-        orientation_plots_dir=orientation_plots_dir,
         raw_shear_strain_dir=raw_shear_strain_dir,
         id_set_shear_strain_dir=id_set_shear_strain_dir,
-        shear_strain_contours_dir=shear_strain_dir / "figures" / "contours",
     )
 
 

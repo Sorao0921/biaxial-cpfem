@@ -31,11 +31,7 @@ def test_case_directories_use_canonical_rho_and_seed_names() -> None:
     )
     assert post.model_dir == OUTPUTS_DIR / "rho_-0.5" / "rho_-0.5_seed3"
     assert post.equivalent_strain_csv == post.model_dir / "eps_equivalent.csv"
-    assert post.height_contours_dir == post.model_dir / "coords/figures/height_contours"
     assert post.orientation_metrics_dir == (
         post.model_dir / "angles/grain_orientation_metrics"
-    )
-    assert post.shear_strain_contours_dir == (
-        post.model_dir / "shear_strains/figures/contours"
     )
     assert mapping.spatial_model_dir == SPATIAL_MODELS_DIR / "seed3"

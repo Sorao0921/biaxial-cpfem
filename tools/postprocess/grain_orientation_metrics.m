@@ -1,4 +1,4 @@
-% Grain-average rotation, GOS, and IPF colour calculation with MTEX.
+% Grain-average rotation and GOS calculation with MTEX.
 %
 % Run tools/postprocess/start_mtex.m before this script.  Input files are the
 % element-wise Bunge Euler CSVs produced by id_set.py (angles in radians).
@@ -27,9 +27,6 @@ OUTPUT_ROOT_DIR = fullfile(ANGLE_DIR, 'grain_orientation_metrics');
 
 CS = crystalSymmetry.load('Al-Aluminum.cif');
 SS = specimenSymmetry('triclinic');
-ipf_key = ipfHSVKey(CS);
-ipf_key.inversePoleFigureDirection = vector3d.Z; % specimen ND
-
 if ~exist(INPUT_ROOT_DIR, 'dir')
     error('Input directory does not exist: %s', INPUT_ROOT_DIR);
 end
@@ -88,7 +85,6 @@ for di = 1:numel(case_dirs)
         gos_deg = zeros(n, 1);
         ref_euler = zeros(n, 3);
         tar_euler = zeros(n, 3);
-        ipf_rgb = zeros(n, 3);
 
         for gi = 1:n
             selected = tar.part_id == part_ids(gi);
@@ -104,7 +100,6 @@ for di = 1:numel(case_dirs)
             [tar_phi1, tar_Phi, tar_phi2] = Euler(mean_tar);
             ref_euler(gi, :) = [ref_phi1, ref_Phi, ref_phi2] ./ degree;
             tar_euler(gi, :) = [tar_phi1, tar_Phi, tar_phi2] ./ degree;
-            ipf_rgb(gi, :) = ipf_key.orientation2color(mean_tar);
         end
 
         result = table(part_ids, element_count, ...
@@ -112,12 +107,10 @@ for di = 1:numel(case_dirs)
             rotation_deg, gos_deg, ...
             ref_euler(:,1), ref_euler(:,2), ref_euler(:,3), ...
             tar_euler(:,1), tar_euler(:,2), tar_euler(:,3), ...
-            ipf_rgb(:,1), ipf_rgb(:,2), ipf_rgb(:,3), ...
             'VariableNames', {'part_id','element_count','reference_state', ...
             'target_state','grain_rotation_deg','gos_deg', ...
             'mean_phi1_reference_deg','mean_Phi_reference_deg','mean_phi2_reference_deg', ...
-            'mean_phi1_target_deg','mean_Phi_target_deg','mean_phi2_target_deg', ...
-            'ipf_nd_r','ipf_nd_g','ipf_nd_b'});
+            'mean_phi1_target_deg','mean_Phi_target_deg','mean_phi2_target_deg'});
         writetable(sortrows(result, 'part_id'), output_path);
         fprintf('[saved] %s (%d grains)\n', output_path, n);
     end

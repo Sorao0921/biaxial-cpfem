@@ -13,8 +13,8 @@ from src.config.pipeline_paths import (
 from src.extract_process.eid_pid_mapping import ElementPartMapper
 
 # Settings
-RHO = 0
-SEED = 2
+RHO = 1
+SEED = 3
 
 EULER_COLUMNS = [
     "phi1",

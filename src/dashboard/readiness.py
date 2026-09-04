@@ -18,9 +18,6 @@ READINESS_COLUMNS = (
     "has_spatial_model",
     "theme1_ready",
     "training_ready",
-    "has_height_plot",
-    "has_orientation_plot",
-    "has_shear_plot",
 )
 
 _MISSING_LABELS = {
@@ -29,12 +26,6 @@ _MISSING_LABELS = {
     "has_accumulated_shear_strain": "累積せん断ひずみ",
     "has_initial_orientation": "初期方位",
     "has_spatial_model": "空間モデル",
-}
-
-_PLOT_LABELS = {
-    "has_height_plot": "表面高さplot",
-    "has_orientation_plot": "GOS・粒回転plot",
-    "has_shear_plot": "せん断ひずみplot",
 }
 
 _QUERY = """
@@ -52,28 +43,7 @@ SELECT
     c.has_spatial_model,
     c.theme1_ready,
     c.training_ready,
-    c.artifact_count,
-    EXISTS (
-        SELECT 1 FROM artifacts a
-        WHERE a.rho=c.rho AND a.seed=c.seed AND a.texture=c.texture
-          AND a.sd=c.sd AND a.state=c.state
-          AND a.data_kind='figure_or_document'
-          AND a.relative_path LIKE '%/coords/figures/height_contours/%'
-    ) AS has_height_plot,
-    EXISTS (
-        SELECT 1 FROM artifacts a
-        WHERE a.rho=c.rho AND a.seed=c.seed AND a.texture=c.texture
-          AND a.sd=c.sd AND a.state=c.state
-          AND a.data_kind='figure_or_document'
-          AND a.relative_path LIKE '%/angles/grain_orientation_plots/%'
-    ) AS has_orientation_plot,
-    EXISTS (
-        SELECT 1 FROM artifacts a
-        WHERE a.rho=c.rho AND a.seed=c.seed AND a.texture=c.texture
-          AND a.sd=c.sd AND a.state=c.state
-          AND a.data_kind='figure_or_document'
-          AND a.relative_path LIKE '%/shear_strains/figures/%'
-    ) AS has_shear_plot
+    c.artifact_count
 FROM v_theme1_case_readiness c
 WHERE c.state <> 1
 ORDER BY c.rho, c.seed, c.texture, c.sd, c.state
@@ -87,9 +57,6 @@ DISPLAY_BOOLEAN_COLUMNS = (
     "has_initial_orientation",
     "theme1_ready",
     "training_ready",
-    "has_height_plot",
-    "has_orientation_plot",
-    "has_shear_plot",
 )
 
 POSTPROCESS_COMPLETE = "完了"
@@ -156,7 +123,7 @@ def summarize_readiness(frame: pd.DataFrame) -> dict[str, Any]:
     total = len(frame)
     theme1_ready = int(frame["theme1_ready"].astype(bool).sum())
     training_ready = int(frame["training_ready"].astype(bool).sum())
-    availability_labels = {**_MISSING_LABELS, **_PLOT_LABELS}
+    availability_labels = _MISSING_LABELS
     available_counts = {
         label: int(frame[column].astype(bool).sum())
         for column, label in availability_labels.items()

@@ -391,20 +391,11 @@ Sz = max(residual) - min(residual)
 
 ケースごとに `coords/roughness/roughness_{texture}_sd{sd}_seed{seed}.csv` を生成する。列は `case,file,num_nodes,a,b,c,sa,sq,sz`。
 
-#### 変形後の高さコンターマップ
+#### 二次元マップの表示
 
-`coords/rawdata` の各 `x,y,z` CSV から、変形後の `(x, y)` 座標上に高さ `z` を描画する。
+高さ・GOS・結晶粒回転・累積せん断ひずみの二次元マップは、ローカル比較UIが元CSVから動的に描画する。UIの各パネルから、現在の条件と表示範囲を反映したPNGを個別に保存できる。大量の重複ファイルを避けるため、一括PNG生成機能は持たない。
 
-高さ・結晶方位指標・累積せん断ひずみの3系統は、同じ統合スクリプトで描画する。
-
-```bash
-python tools/mapping/plot_mapping.py --rho 1 --seed 2
-```
-
-既定では3系統をすべて描画する。1系統だけ再描画したい場合は、
-`--plot height`、`--plot orientation`、`--plot shear` のいずれかを指定する。
-
-出力先は `coords/figures/height_contours/{case}/`。高さは $10^{-3}$ 単位に換算し、すべての図で 5（青）から10（赤）までの共通色範囲を使用する。x・y軸の主目盛りは0.1刻み。必要なら `--height-vmin` と `--height-vmax` で換算後の固定範囲を変更できる。
+高さは $10^{-3}$ 単位で9〜10、GOSは0〜3°、結晶粒回転は0〜5°、合計累積せん断ひずみは0〜0.3の共通色範囲を使用する。高さマップのx・y軸の主目盛りは0.1刻み。範囲外の値はカラーマップの端色で表示する。
 
 ### 8.2 element_id / part_id の付与
 
@@ -429,15 +420,7 @@ Euler 角:
 
 処理中に必須列、数値変換、重複 element ID を検証し、最終結果は `element_id` 昇順に並べる。既存出力は上書きしない。
 
-### 8.3 描画・MATLAB 後処理
-
-累積せん断ひずみだけを描画する場合は次のコマンドを使用する。
-
-```bash
-python tools/mapping/plot_mapping.py --rho 1 --seed 1 --plot shear
-```
-
-`--shear-metric` には `gamma_total`, `gamma_max`, `alpha`, `c_slip` を指定できる。省略時は4種類をすべて描画する。`--aggregation both`（既定）では、局所化を見るelementマップと、GOS・粒回転との比較に使う結晶粒マップの両方を出力する。結晶粒値は、まず粒内の各すべり系を表面要素面積で重み付き平均し、その後に4指標を計算する。すべての図に結晶粒界を重ねる。全すべり系が0の領域は `NaN` とし白色表示する。必要に応じて `--activity-threshold` に物理的な下限値を指定できる。
+### 8.3 MATLAB 後処理
 
 | ファイル | 主な役割 |
 |---|---|
@@ -567,6 +550,25 @@ Theme 1では端部除去済み座標を使わず、`coords/rawdata` の表面�
 
 条件を限定する場合は `--rho`, `--seed`, `--texture`, `--sd`, `--state` を指定する。推定値は観測上の関連度であり、因果効果を意味しない。GOSと粒回転の相関が強い場合、個別の係数は不安定になり得るため、ケース別係数と決定係数も併せて確認する。
 
+### 14.1 表面粒グラフとグラフ周波数解析
+
+表面要素が共有する辺から結晶粒の隣接グラフを構築し、符号付き表面高さ、累積せん断ひずみ、粒回転、GOSを低・中・高グラフ周波数帯へ分解する。
+
+```bash
+python tools/theme1/analyze_graph_spectra.py
+```
+
+既定では共有粒界長を粒重心間距離で割った値をエッジ重みとし、対称正規化グラフLaplacianを使用する。帯域エネルギー比では空間平均に相当する定数モードを除き、場の空間変動だけを比較する。低周波は複数粒にまたがる協調変形、高周波は隣接粒間で急変する成分を表す。高周波成分を直ちに物理的不適合と同一視せず、せん断ひずみや粒回転の同帯域成分との対応を検証する。
+
+| ファイル | 内容 |
+|---|---|
+| `graphs/seed*/nodes.csv` | 表面粒ノードと重心・表面要素数 |
+| `graphs/seed*/edges.csv` | 共有粒界に基づくエッジと重み |
+| `graphs/seed*/eigenvalues.csv` | グラフLaplacianの固有値 |
+| `grain_signals.csv` | ケース別・表面粒別の物理信号と帯域再構成値。`height_std` は粒内成分、`height_mean_low/mid/high` は粒間長波長・中間・短波長成分 |
+| `mode_coefficients.csv` | 各信号のグラフFourier係数 |
+| `band_energies.csv` | 低・中・高周波帯のエネルギーと比率 |
+
 ---
 
 # English Specification
@@ -664,7 +666,7 @@ Run Python commands from the repository root so that the `src` package can be re
 
 - LS-DYNA / SuperDyna4: simulation solver and execution environment
 - LS-PrePost 4.9: result extraction from `d3plot`
-- MATLAB and MTEX 5.11.1: orientation generation, pole figures, grain rotation, GOS, and IPF colour processing
+- MATLAB and MTEX 5.11.1: orientation generation, pole figures, grain rotation, and GOS processing
 - Windows PowerShell/batch: preparation and execution on SuperDyna4
 
 `tools/superdyna4/extract_surface_coords.py` uses the following fixed LS-PrePost path:
@@ -946,7 +948,7 @@ The implementation validates required columns, numeric conversion, and duplicate
 |---|---|
 | `tools/postprocess/plot_for_textile.py` | Plots Sa/Sq/Sz and L1/L2/L3 profiles by orientation and state; converts height from mm to µm by multiplying by 1000 |
 | `tools/postprocess/post_polefigure.m` | Pole-figure processing with MTEX |
-| `tools/postprocess/grain_orientation_metrics.m` | Grain-average rotation, GOS, and IPF colour calculations with MTEX |
+| `tools/postprocess/grain_orientation_metrics.m` | Grain-average rotation and GOS calculations with MTEX |
 | `tools/postprocess/post_main.py` | Coordinates, roughness, and line-extraction orchestration |
 | `tools/postprocess/id_set.py` | Element/part-normalized output generation |
 

@@ -12,8 +12,8 @@ from src.extract_process.roughness import SurfaceRoughnessAnalyzer
 # Case settings
 # Change RHO and SEED to select another post-processing directory.
 # ============================================================
-RHO = 0
-SEED = 2
+RHO = 1
+SEED = 3
 
 
 # ===========================================================

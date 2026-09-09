@@ -94,3 +94,20 @@ def test_spectral_summary_excludes_the_constant_mode_from_band_energy() -> None:
     modes, energies = spectral_summary(graph, signals)
     assert set(modes.loc[modes["mode"] == 0, "band"]) == {"dc"}
     assert np.allclose(energies["energy"], 0.0, atol=1e-12)
+
+
+def test_spectral_summary_can_skip_per_mode_rows() -> None:
+    elements, nodes = _grid()
+    graph = build_surface_grain_graph(elements, nodes)
+    signals = pd.DataFrame(
+        {
+            "part_id": [10, 20],
+            "height_mean": [1.0, -1.0],
+            "shear_mean": [0.2, 0.8],
+            "grain_rotation": [0.1, 0.3],
+            "gos": [0.05, 0.2],
+        }
+    )
+    modes, energies = spectral_summary(graph, signals, include_modes=False)
+    assert modes.empty
+    assert len(energies) == 12

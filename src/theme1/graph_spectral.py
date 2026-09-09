@@ -233,6 +233,7 @@ def spectral_summary(
     columns: tuple[str, ...] = ("height_mean", "shear_mean", "grain_rotation", "gos"),
     *,
     cutoffs: tuple[float, float] = (1.0 / 3.0, 2.0 / 3.0),
+    include_modes: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return per-mode coefficients and low/mid/high graph-frequency energies."""
     if not 0 < cutoffs[0] < cutoffs[1] < 1:
@@ -258,19 +259,20 @@ def spectral_summary(
         fluctuation_energy = energies.copy()
         fluctuation_energy[bands == "dc"] = 0.0
         total = float(fluctuation_energy.sum())
-        for mode, (eigenvalue, coefficient, energy, band) in enumerate(
-            zip(graph.eigenvalues, coefficients, energies, bands)
-        ):
-            mode_rows.append(
-                {
-                    "signal": column,
-                    "mode": mode,
-                    "eigenvalue": eigenvalue,
-                    "band": band,
-                    "coefficient": coefficient,
-                    "energy": energy,
-                }
-            )
+        if include_modes:
+            for mode, (eigenvalue, coefficient, energy, band) in enumerate(
+                zip(graph.eigenvalues, coefficients, energies, bands)
+            ):
+                mode_rows.append(
+                    {
+                        "signal": column,
+                        "mode": mode,
+                        "eigenvalue": eigenvalue,
+                        "band": band,
+                        "coefficient": coefficient,
+                        "energy": energy,
+                    }
+                )
         for band in ("low", "mid", "high"):
             band_energy = float(fluctuation_energy[bands == band].sum())
             energy_rows.append(

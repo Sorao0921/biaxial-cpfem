@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Literal
 
-MetricKind = Literal["height", "orientation", "shear"]
+MetricKind = Literal["height", "orientation", "shear", "initial"]
 
 _CASE_RE = re.compile(
     r"(?P<texture>brass|copper|cube|goss|s)_sd(?P<sd>\d+)_seed(?P<seed>\d+)",
@@ -96,6 +96,12 @@ def scan_outputs(
         key = ("shear", *case)
         records[key] = OutputRecord("shear", *case, path, "id_set")
 
+    initial_dir = outputs_dir.parent / "database" / "taylor_factor_initial"
+    for path in initial_dir.glob("rho_*/rho_*_seed*/taylor_factor/initial/*state01.csv"):
+        case = _case_from_path(path)
+        if case is not None and case[-1] == 1:
+            records[("initial", *case)] = OutputRecord("initial", *case, path, "initial_grain_metrics")
+
     return sorted(
         records.values(),
         key=lambda item: (
@@ -135,3 +141,9 @@ def available_values(
     records: Iterable[OutputRecord], field: str
 ) -> list[float | int | str]:
     return sorted({getattr(record, field) for record in records})
+
+
+def initial_record_for(records: Iterable[OutputRecord], record: OutputRecord) -> OutputRecord | None:
+    """Resolve only state01, regardless of the selected dynamic state."""
+    return next((r for r in records if r.kind == "initial"
+                 and r.case_key == (*record.case_key[:4], 1)), None)

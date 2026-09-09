@@ -1,0 +1,29 @@
+{
+  "cases": 2580,
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "graph_weight": "boundary_length_over_distance",
+  "laplacian": "symmetric normalized",
+  "band_cutoffs": [
+    "lambda_max/3",
+    "2*lambda_max/3"
+  ],
+  "height": "signed residual from the least-squares reference plane",
+  "height_components": [
+    "height_std",
+    "height_mean_low",
+    "height_mean_mid",
+    "height_mean_high"
+  ],
+  "signals": [
+    "height_mean",
+    "shear_mean",
+    "grain_rotation",
+    "gos"
+  ],
+  "mode_coefficients_written": false,
+  "result_writing": "incremental"
+}

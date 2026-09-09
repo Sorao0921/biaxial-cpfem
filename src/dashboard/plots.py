@@ -7,7 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
-from matplotlib.collections import PolyCollection
+from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
 
@@ -73,12 +73,79 @@ def _is_float(value: str) -> bool:
     return True
 
 
+@lru_cache(maxsize=8)
+def surface_topology(spatial_model_dir: Path | str):
+    """Top-face connectivity in the coordinate export's 1-based surface order.
+
+    EdgeDropper IDs are row numbers, not global mesh node IDs. The surface
+    export follows ascending global node ID (x fastest on the plate mesh).
+    """
+    root = Path(spatial_model_dir)
+    nodes = np.loadtxt(root / "nodes.csv", delimiter=",", skiprows=1, ndmin=2)
+    elements = np.loadtxt(root / "elements.csv", delimiter=",", skiprows=1, ndmin=2)
+    top = nodes[np.isclose(nodes[:, 3], nodes[:, 3].max())]
+    top = top[np.argsort(top[:, 0])]
+    indices = {int(row[0]): i + 1 for i, row in enumerate(top)}
+    faces, ids, parts = [], [], []
+    for element in elements:
+        face = list(dict.fromkeys(indices[int(n)] for n in element[5:] if int(n) in indices))
+        if len(face) < 3:
+            continue
+        xy = top[np.array(face) - 1, 1:3]
+        center = xy.mean(axis=0)
+        order = np.argsort(np.arctan2(xy[:, 1] - center[1], xy[:, 0] - center[0]))
+        faces.append(np.array(face)[order])
+        ids.append(int(element[0]))
+        parts.append(int(element[1]))
+    edge_parts: dict[tuple[int, int], set[int]] = {}
+    for face, part in zip(faces, parts):
+        for a, b in zip(face, np.roll(face, -1)):
+            edge_parts.setdefault(tuple(sorted((int(a), int(b)))), set()).add(part)
+    boundaries = [edge for edge, owners in edge_parts.items() if len(owners) > 1]
+    return np.array(ids), np.array(parts), faces, boundaries, len(top)
+
+
+def deformed_surface(spatial_model_dir: Path | str, coordinates_path: Path | str):
+    """Reconstruct visible faces and grain edges from current surface positions."""
+    ids, parts, faces, boundaries, count = surface_topology(spatial_model_dir)
+    path = Path(coordinates_path)
+    with path.open(newline="", encoding="utf-8") as source:
+        first = next(csv.reader(source))
+    header = any(not _is_float(value) for value in first)
+    data = np.loadtxt(path, delimiter=",", skiprows=int(header), ndmin=2)
+    if data.shape[1] == 3:
+        if len(data) != count:
+            raise ValueError(f"Expected {count} surface coordinate rows, got {len(data)}.")
+        node_ids, xyz = np.arange(1, count + 1), data
+    elif data.shape[1] == 4:
+        node_ids, xyz = data[:, 0], data[:, 1:4]
+    else:
+        raise ValueError("Expected x/y/z or surface-row-id/x/y/z coordinates.")
+    if (not np.isfinite(data).all() or np.any(node_ids != node_ids.astype(int))
+            or len(np.unique(node_ids)) != len(node_ids)
+            or np.any(node_ids < 1) or np.any(node_ids > count)):
+        raise ValueError("Invalid or duplicate surface node IDs/coordinates.")
+    positions = {int(n): point[:2] for n, point in zip(node_ids, xyz)}
+    selected = [i for i, face in enumerate(faces) if all(int(n) in positions for n in face)]
+    if not selected:
+        raise ValueError("Coordinates contain no complete surface elements.")
+    polygons = [np.array([positions[int(n)] for n in faces[i]]) for i in selected]
+    segments = [np.array([positions[a], positions[b]]) for a, b in boundaries
+                if a in positions and b in positions]
+    return ids[selected], parts[selected], polygons, segments
+
+
+def _draw_boundaries(axis, segments):
+    axis.add_collection(LineCollection(segments, colors="black", linewidths=0.55))
+
+
 def height_figure(
     path: Path | str,
     *,
     title: str,
     value_range: tuple[float, float],
     cmap: str = "coolwarm",
+    spatial_model_dir: Path | str | None = None,
 ):
     x, y, z = read_height(path)
     z = z * HEIGHT_SCALE
@@ -91,6 +158,9 @@ def height_figure(
     contour = axis.tricontourf(
         triangulation, z, levels=levels, cmap=cmap, extend="both"
     )
+    if spatial_model_dir is not None:
+        *_, segments = deformed_surface(spatial_model_dir, path)
+        _draw_boundaries(axis, segments)
     axis.set_aspect("equal", adjustable="box")
     axis.set_xlabel("x")
     axis.set_ylabel("y")
@@ -128,9 +198,13 @@ def orientation_figure(
     title: str,
     value_range: tuple[float, float] | None = None,
     cmap: str = "viridis",
+    coordinates_path: Path | str | None = None,
 ):
     by_part = read_grain_metric(metrics_path, metric)
-    _, parts, polygons = surface_polygons(spatial_model_dir)
+    if coordinates_path is None:
+        _, parts, polygons = surface_polygons(spatial_model_dir)
+    else:
+        _, parts, polygons, _ = deformed_surface(spatial_model_dir, coordinates_path)
     missing = sorted(set(map(int, parts)).difference(by_part))
     if missing:
         raise ValueError(f"Metrics are missing for {len(missing)} part(s).")
@@ -146,9 +220,13 @@ def orientation_figure(
         cmap=cmap,
         norm=norm,
         edgecolors="none",
+        antialiaseds=False,
     )
     axis.add_collection(collection)
     axis.autoscale_view()
+    axis.margins(0)
+    axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.set_aspect("equal", adjustable="box")
     axis.set_xlabel("x")
     axis.set_ylabel("y")
@@ -198,3 +276,49 @@ def _nonzero_range(lower: float, upper: float) -> tuple[float, float]:
     if np.isclose(lower, upper):
         upper = lower + max(abs(lower), 1.0) * 1.0e-12
     return lower, upper
+
+
+INITIAL_METRICS = {
+    "taylor": ("taylor_factor", "Taylor factor (initial, state01)", "M", (1.5, 4.5)),
+    "phi1": ("phi1_rad", "Initial orientation: phi1 (state01)", "deg", (0., 360.)),
+    "Phi": ("Phi_rad", "Initial orientation: Phi (state01)", "deg", (0., 180.)),
+    "phi2": ("phi2_rad", "Initial orientation: phi2 (state01)", "deg", (0., 360.)),
+}
+
+
+def initial_figure(metrics_path, spatial_model_dir, *, metric="taylor", title=None):
+    """Initial values on the undeformed mesh; deliberately accepts no state/coordinates."""
+    column, default_title, unit, limits = INITIAL_METRICS[metric]
+    with Path(metrics_path).open(newline="", encoding="utf-8") as source:
+        rows = list(csv.DictReader(source))
+    by_part = {}
+    for row in rows:
+        if int(row["state"]) != 1:
+            raise ValueError("Initial maps require state01 data")
+        part = int(row["part_id"])
+        if part in by_part:
+            raise ValueError("Duplicate initial part_id")
+        value = float(row[column])
+        if not np.isfinite(value):
+            raise ValueError("Non-finite initial value")
+        by_part[part] = value if metric == "taylor" else np.rad2deg(value)
+    _, parts, faces, boundaries, _ = surface_topology(spatial_model_dir)
+    nodes = np.loadtxt(Path(spatial_model_dir)/"nodes.csv", delimiter=",", skiprows=1, ndmin=2)
+    top = nodes[np.isclose(nodes[:,3], nodes[:,3].max())]
+    top = top[np.argsort(top[:,0])]
+    polygons = [top[np.asarray(face)-1,1:3] for face in faces]
+    missing = set(map(int,parts)) - by_part.keys()
+    if missing:
+        raise ValueError(f"Initial metrics missing for {len(missing)} surface parts")
+    values = np.array([by_part[int(part)] for part in parts])
+    figure, axis = plt.subplots(figsize=(5.2,4.8), constrained_layout=True)
+    collection = PolyCollection(polygons, array=values, cmap="viridis",
+                                norm=Normalize(*limits), edgecolors="none", antialiaseds=False)
+    axis.add_collection(collection)
+    _draw_boundaries(axis, [top[np.array(edge)-1,1:3] for edge in boundaries])
+    axis.autoscale_view(); axis.margins(0); axis.set_aspect("equal", adjustable="box")
+    axis.set(xlabel="x", ylabel="y", title=title or default_title)
+    axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    figure.colorbar(collection, ax=axis, label=unit)
+    return figure

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -35,7 +36,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--texture")
     parser.add_argument("--sd", type=int)
     parser.add_argument("--state", type=int)
+    parser.add_argument(
+        "--skip-mode-coefficients",
+        action="store_true",
+        help="Skip the large per-mode CSV; band energies and reconstructed signals are still written.",
+    )
     return parser
+
+
+def _append_csv(frame: pd.DataFrame, path: Path, *, first: bool) -> None:
+    frame.to_csv(path, mode="w" if first else "a", header=first, index=False)
 
 
 def main() -> int:
@@ -52,10 +62,21 @@ def main() -> int:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     graphs = {}
-    energy_frames = []
-    mode_frames = []
-    signal_frames = []
-    for case in tqdm(cases, desc="Theme 1 graph spectra", unit="case", dynamic_ncols=True):
+    final_paths = {
+        "signals": args.output_dir / "grain_signals.csv",
+        "modes": args.output_dir / "mode_coefficients.csv",
+        "energies": args.output_dir / "band_energies.csv",
+    }
+    partial_paths = {
+        name: path.with_name(f".{path.name}.partial")
+        for name, path in final_paths.items()
+    }
+    for path in partial_paths.values():
+        path.unlink(missing_ok=True)
+
+    for case_number, case in enumerate(
+        tqdm(cases, desc="Theme 1 graph spectra", unit="case", dynamic_ncols=True)
+    ):
         graph = graphs.get(case.seed)
         if graph is None:
             graph = load_surface_graph(case.spatial_model_dir, weight=args.weight)
@@ -72,7 +93,9 @@ def main() -> int:
             ).to_csv(seed_dir / "eigenvalues.csv", index=False)
 
         signals = load_grain_signals(case, graph)
-        modes, energies = spectral_summary(graph, signals)
+        modes, energies = spectral_summary(
+            graph, signals, include_modes=not args.skip_mode_coefficients
+        )
         indexed = signals.set_index("part_id").reindex(graph.node_ids)
         for signal_name in ("height_mean", "shear_mean", "grain_rotation", "gos"):
             components = reconstruct_bands(
@@ -94,16 +117,18 @@ def main() -> int:
         for frame in (signals, modes, energies):
             for column, value in reversed(tuple(metadata.items())):
                 frame.insert(0, column, value)
-        signal_frames.append(signals)
-        mode_frames.append(modes)
-        energy_frames.append(energies)
+        first = case_number == 0
+        _append_csv(signals, partial_paths["signals"], first=first)
+        _append_csv(energies, partial_paths["energies"], first=first)
+        if not args.skip_mode_coefficients:
+            _append_csv(modes, partial_paths["modes"], first=first)
 
-    all_signals = pd.concat(signal_frames, ignore_index=True)
-    all_modes = pd.concat(mode_frames, ignore_index=True)
-    all_energies = pd.concat(energy_frames, ignore_index=True)
-    all_signals.to_csv(args.output_dir / "grain_signals.csv", index=False)
-    all_modes.to_csv(args.output_dir / "mode_coefficients.csv", index=False)
-    all_energies.to_csv(args.output_dir / "band_energies.csv", index=False)
+    os.replace(partial_paths["signals"], final_paths["signals"])
+    os.replace(partial_paths["energies"], final_paths["energies"])
+    if args.skip_mode_coefficients:
+        final_paths["modes"].unlink(missing_ok=True)
+    else:
+        os.replace(partial_paths["modes"], final_paths["modes"])
     diagnostics = {
         "cases": len(cases),
         "seeds": sorted(graphs),
@@ -113,6 +138,8 @@ def main() -> int:
         "height": "signed residual from the least-squares reference plane",
         "height_components": ["height_std", "height_mean_low", "height_mean_mid", "height_mean_high"],
         "signals": ["height_mean", "shear_mean", "grain_rotation", "gos"],
+        "mode_coefficients_written": not args.skip_mode_coefficients,
+        "result_writing": "incremental",
     }
     (args.output_dir / "diagnostics.json").write_text(
         json.dumps(diagnostics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

@@ -558,6 +558,17 @@ Theme 1では端部除去済み座標を使わず、`coords/rawdata` の表面�
 python tools/theme1/analyze_graph_spectra.py
 ```
 
+全ケースを省メモリで実行し、通常の解釈で主に使う帯域エネルギーと
+粒別の帯域再構成値だけを保存する場合:
+
+```bash
+python tools/theme1/analyze_graph_spectra.py --skip-mode-coefficients
+```
+
+結果CSVはケースごとに逐次書き込まれるため、全ケース分のDataFrameを
+メモリに保持しない。`--skip-mode-coefficients` を指定しない場合は、従来どおり
+`mode_coefficients.csv` も保存する。
+
 既定では共有粒界長を粒重心間距離で割った値をエッジ重みとし、対称正規化グラフLaplacianを使用する。帯域エネルギー比では空間平均に相当する定数モードを除き、場の空間変動だけを比較する。低周波は複数粒にまたがる協調変形、高周波は隣接粒間で急変する成分を表す。高周波成分を直ちに物理的不適合と同一視せず、せん断ひずみや粒回転の同帯域成分との対応を検証する。
 
 | ファイル | 内容 |

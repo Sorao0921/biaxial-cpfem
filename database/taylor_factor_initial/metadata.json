@@ -1,0 +1,952 @@
+{
+  "definition": "min sum(abs(gamma))/sqrt(2/3 D:D)",
+  "model": "FCC {111}<110>, equal CRSS, full-constraint Taylor",
+  "strain": "diag(1,rho,-1-rho); x primary; y transverse; z thickness",
+  "normalization": "von Mises equivalent plastic strain",
+  "orientation": "Bunge radians; passive sample-to-crystal matrix",
+  "rows": 756000,
+  "source_files": 225,
+  "max_primal_dual_error": 5.280220705117245e-13,
+  "notes": [
+    "Initial orientation-based predictions, not measured FE local plastic response.",
+    "rho=0_boundary uses 0.001 from boundary card; nominal rho=0 also supplied.",
+    "Element-weighted mean is not asserted to be a volume-weighted mean.",
+    "Rows with element_count=0 are unused orientation entries and excluded from grain means."
+  ],
+  "sources": [
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma10_seed1.csv",
+      "sha256": "6015b90ccdeaefefa8580b9cc9a444cbbb36ef836e4adef880352cfe0c75481d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma2_seed1.csv",
+      "sha256": "0aefdb9af1e0bc2a40c87ffc73cc9544faf877a4a1ebcf324fa9331cc129d6a6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma3_seed1.csv",
+      "sha256": "eb15ece7b24ffad0bd17d1ef19f0c2160178274c76184ce3fef7de4cc3e118bd"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma4_seed1.csv",
+      "sha256": "180a90c54152839093cb38b51bd0d7e4aeaa151c3394ff9aa9d04d132809e384"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma5_seed1.csv",
+      "sha256": "1ea947b518c8a1cae556bf5d91a8d270070914d6e538919a9977e8e6daa29b39"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma6_seed1.csv",
+      "sha256": "02e1e2b05ee65a886937da2703c68ccfc2110bae3fa6122958b0f46426987dd1"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma7_seed1.csv",
+      "sha256": "b806b7a934233cdf081b0dc96fdfbf7374b6b3a1b266892b344532786385955d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma8_seed1.csv",
+      "sha256": "a2f69a397962dbfd75fbc4ef4f5ac9e54a5fc0d3c5be9cd48dfbb90bb26635eb"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/brass_sigma9_seed1.csv",
+      "sha256": "7e2c0514682e3b427c37a987605c2ed113a268fd9ffb8e98451489962350d10b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma10_seed1.csv",
+      "sha256": "7e001e049680faec1780acbd36c0a6fd73d7589ba86e861a72e98ad236d68aaf"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma2_seed1.csv",
+      "sha256": "16557f7b637dfd79861dbbf6e274c5a6187fde19c8459391017809cc0fb7b489"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma3_seed1.csv",
+      "sha256": "e5d92c903746a1e1f22c205e2c68a15c98bee7281829c7b1f2109a0222499ae2"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma4_seed1.csv",
+      "sha256": "4213c666d2f8ea5234e0efa6c3cf6ed38080c7a0142bf6c66ea5f5af1663cd7a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma5_seed1.csv",
+      "sha256": "1771bba2ce7b1c851ad168576fabd55ae6e0f305917cf2d55188cefe3892f4f2"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma6_seed1.csv",
+      "sha256": "a6ee79f022c914fe77a99bf11f2cb13a872a91f1487757b82ee51101d1037329"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma7_seed1.csv",
+      "sha256": "22d9db4d7101980574d290c54cb342cf3da8511971634bed27edab184d157003"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma8_seed1.csv",
+      "sha256": "cb06cd0d82910eb8bc39ebcd8b46b5a0e8c2d83c31dec3f9c0ce1254ee55c0a3"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/copper_sigma9_seed1.csv",
+      "sha256": "6d51198425d68aaa65c031bfebcbf1d28daf133328defb83b510ebaacf4d9d6c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma10_seed1.csv",
+      "sha256": "29846f9bdcc7aa3cf7015531f1a581eac64ca3eebd55e361438d77b9f48b6053"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma2_seed1.csv",
+      "sha256": "dd52a9a3f0c2beac8707fb81332f9b0a5725e696c5dd516eb611cc487db418b7"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma3_seed1.csv",
+      "sha256": "0a3989a1cfa804e5875a779c730493d96dd19b50a48673bcf6cbb9782c2b6adb"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma4_seed1.csv",
+      "sha256": "8767dfd2529cf02fefe812b01136c0a21797fcabaeabe04d7304ee7237d17520"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma5_seed1.csv",
+      "sha256": "65a74cc241bf98e80d0bc3ed0a5f250f175e9f0d89425fce6320e992cbbf3ffb"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma6_seed1.csv",
+      "sha256": "9bc30544ed7fd86ace89f29487cb4eff730f246d29256fa56358603ed3d80479"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma7_seed1.csv",
+      "sha256": "a49bfa19615daaeaf30a949cc993c8052f8848851ec31a37606f07faf8f05c52"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma8_seed1.csv",
+      "sha256": "8ebedbac3968471e2e4c550d559573055f1640090a7300431004dc3af236681a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/cube_sigma9_seed1.csv",
+      "sha256": "9cd5e4bb0d6dfd413890fe9472a72649ffa45cb878c210db84d551a9a2327835"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma10_seed1.csv",
+      "sha256": "f7cc7d919c57ecbf99bb2e1320b8adb338a37a8af225617bce28828094a0e177"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma2_seed1.csv",
+      "sha256": "ccb7ec19b642de7c05f33bdc6af31fded4f9036ce81dc7e9f807a1f2119bc0e9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma3_seed1.csv",
+      "sha256": "05cff62a823f13ff9466552b76ce4e9dff58173925cc8c5ca17b5f954027ef98"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma4_seed1.csv",
+      "sha256": "341d33a4ddb3a4ff478b91242201f4bb841dad4cec8133de05d72c83f5236666"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma5_seed1.csv",
+      "sha256": "6fc81182329623463e10236209866ba593970b847fa8ccd086c043e325d3a823"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma6_seed1.csv",
+      "sha256": "a8bc67e1027af31fccac172349c05daaac838c5c9b26c20b2eb1d0857d7be78d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma7_seed1.csv",
+      "sha256": "bcf373432dd5eb12a04e3b68cbfece97b41f161a8307b9287e4c8fece1396ccc"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma8_seed1.csv",
+      "sha256": "47b262ef141397ab0a1ed33bcdd2ac2b25b11e2540c639c90a589c4a62345029"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/goss_sigma9_seed1.csv",
+      "sha256": "91eeefebb5a9694ff8931c2f45d2a1f2f604160059a9cffa5e73629bdc783fae"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma10_seed1.csv",
+      "sha256": "8b2ecff2d70d7e8f72998dcbe73ae761973e6167f5bc48f51454b0f184f94629"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma2_seed1.csv",
+      "sha256": "1ebc03989226b0e936c6d56fe596cc3acc86c1e898370a9d7aa88e8a928cdaa1"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma3_seed1.csv",
+      "sha256": "18695320506e1770048c58832a5dea35ca55c7777def6cb8ebfc8449a3cb5782"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma4_seed1.csv",
+      "sha256": "41f3996cb5bb506592c76caf3b1df2fb68ae9b17a3283e958b0c955442c2cf1b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma5_seed1.csv",
+      "sha256": "be1d30ffb233b2521cf5775620121ee9167eeedfb74a56c87c5c49bc7dfa7448"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma6_seed1.csv",
+      "sha256": "ac85f7ad663aee12e7aec22a5cc106fd6383d87ccc8a549ce5b7ea86a34b9fb2"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma7_seed1.csv",
+      "sha256": "64262af053664c54080e6e86630c282a2fb57cf40b21a88d186585c3355ec257"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma8_seed1.csv",
+      "sha256": "2e59697b51a6303f2d828747e9391e8d573d4f6e4e9cd3381c9c55ab07722af0"
+    },
+    {
+      "path": "inputs/orientation/texture_seed1/s_sigma9_seed1.csv",
+      "sha256": "01392bbb75b1f491dd08a0529db9dfb65f46d4b33e67792a248b1d9aefa8a0b5"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma10_seed2.csv",
+      "sha256": "fd8efdf84fb5051f0e427dfc554268afc1f8db18c24c53fd31015216baacb81b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma2_seed2.csv",
+      "sha256": "fa9eaa1ebaf58736ccc6ea0774d203b6a4f54197698d944cf07a0c2c634d8bc7"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma3_seed2.csv",
+      "sha256": "c65421aabb47a257d2c8eba91d5cc5045a176b4be2deb3c42e241a7919e1b324"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma4_seed2.csv",
+      "sha256": "f47ec99dcdeef48dcf551878c0be53b8b515fcf9c92ed94025b1b7bbdf07b6d4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma5_seed2.csv",
+      "sha256": "e404a7bfe658487858daf671dbe90ac1af59d5e55723284b73d2031cc79bc887"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma6_seed2.csv",
+      "sha256": "be1127d57ff6329c10b3d8208c237a459dc53d9e710b51ecaa6bad6bb5b31457"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma7_seed2.csv",
+      "sha256": "07ba0ce1fbc6ac6c19764b2e01b6387ada2492dc049fad7969d217d2588138af"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma8_seed2.csv",
+      "sha256": "e32c5e1b26df07260ed8b46504aa7375c6823ec213e3957f36c5c6420fd985f6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/brass_sigma9_seed2.csv",
+      "sha256": "ec7f78bbfd086de455bba487c28e223355fd05b5a4b64885676fdd709e0c2f3d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma10_seed2.csv",
+      "sha256": "c2adf02bae7c70a0f3a1f8f73b8dc569ae07f6adc8304b2191b17f0ece252086"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma2_seed2.csv",
+      "sha256": "6841a75bc88d16125e2dc0f8552e4cfd29119796701a56e72475d8eb8752fbbd"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma3_seed2.csv",
+      "sha256": "b233e02b95173ca86881427b498b3eef4842b41659dddd2b3d17b00a3d1e9610"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma4_seed2.csv",
+      "sha256": "140e26dad5ffc220d5c47d4519bcea4206c8c52f7cabcad6489fbc80bae8889f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma5_seed2.csv",
+      "sha256": "b99882c5b89468baae26cd0608572a2e31f53dd54567970304242c85d678a512"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma6_seed2.csv",
+      "sha256": "c403045425fdb6b63eaf9f39aec7e1f72bd2205561a9f363f7a9f64b317ab715"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma7_seed2.csv",
+      "sha256": "efcdd2df415993eabbeaf33141febc1fc19140ae728c084ff170b624a5e89f75"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma8_seed2.csv",
+      "sha256": "d6f0a07f271f7cecbba6f05652c37dad5258b434ee8050d3a9f90a135262ca31"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/copper_sigma9_seed2.csv",
+      "sha256": "073de37a4b8a7e974c93e33b114473e7d0439a40178aeaac1b61e079a20f05e4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma10_seed2.csv",
+      "sha256": "521af3562ba6fe1ba63c3448cdd58efc77fdea651f91539ed7c3acb2246591ae"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma2_seed2.csv",
+      "sha256": "2fb61c4185f10b393b8f673f640e6fbea702d00161d5fed43a5e0aa7a5fb27d2"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma3_seed2.csv",
+      "sha256": "30a21ab5dbfd791856bf58b79da8f410b26b0a4ac346a9a9ded22d77a18468b6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma4_seed2.csv",
+      "sha256": "3a029d8cb658618c28b304eb3b32469562b35d6abf3e7a3c47a93bf892ba9cf1"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma5_seed2.csv",
+      "sha256": "2f67ee63b73e6e5823700e3e32da2276e6d7d8444fa462657a77bd92e6f95c73"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma6_seed2.csv",
+      "sha256": "fae693c5eb38b7f900db4860311fe4f8424c8497db8b4bf24300b66717403029"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma7_seed2.csv",
+      "sha256": "a8012ad2222bdb578d9e5cf0ce184327a592cae8ff03a5a5861edc14d8dcf5bf"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma8_seed2.csv",
+      "sha256": "8b0765981bfbb14dab044a8307433e9fbaebc2f09e584b218e83aaecf5f6c396"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/cube_sigma9_seed2.csv",
+      "sha256": "705059f16616f898306a5af317050c638933b98fc8679f0ae0bb1bbd1931e760"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma10_seed2.csv",
+      "sha256": "53deac9d89ee9db31c259787555c1ce34b00cdd4869b9197b9e3026f0edde88f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma2_seed2.csv",
+      "sha256": "63a8dd3c598095936b48c1afff2a44fefbd8f53db48beb4b9fb64e626f500cf6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma3_seed2.csv",
+      "sha256": "cfa8cf3741fe4d34ff25493908be7b9e3aecd92dd7891f9ce1d26513a9e2061f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma4_seed2.csv",
+      "sha256": "e4e84d36e95735d9fb3b9a2bd61f35ace7ac705dce3df40a6d808fe186ee7c3a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma5_seed2.csv",
+      "sha256": "4afbaa0edc9d3b83c13a73b23dbfa1fc10c37bcf618c404acdf835196ea71ff9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma6_seed2.csv",
+      "sha256": "68ac6271bdb3c0b21e0c2d468d002ec299ecf4c14ab96d28500d35b521914d64"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma7_seed2.csv",
+      "sha256": "bcf5d2ef11013395651787e09a5bd6bb0665c2758354c46d34036b0e8af61994"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma8_seed2.csv",
+      "sha256": "a3639d3746b8ffd068f8f6d92742e90c5af4fd4326f84e149032a8303e11192d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/goss_sigma9_seed2.csv",
+      "sha256": "b6f4e236b21fda0eacb7fcaa5908117b4bef87f820acd4e94c1f6d3fe4133a3c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma10_seed2.csv",
+      "sha256": "6f7b15f02ed7d1b1ed709d570bd722e20048266f71a7fea77e19b7d94d33963f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma2_seed2.csv",
+      "sha256": "8b162d75a93e2dfc14ea30365211018a3ae5bf4ee4c94fb841cab7db8715f395"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma3_seed2.csv",
+      "sha256": "719a8d1707d94a07120ff5f756264436fea09a9e2908bd99290966ac68b2fefe"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma4_seed2.csv",
+      "sha256": "db298b693ee12bd39949fbaaed2c0711ef9f401030582fc92250111016e4b8a9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma5_seed2.csv",
+      "sha256": "29c090fee8d1d50fca0cb20028f820b9376ae6b39156fcb627ad288c8c3fb64c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma6_seed2.csv",
+      "sha256": "228287f7d6380435bea79616a146841ad1bce341d23a0dc9f5adc23cc9d63ee2"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma7_seed2.csv",
+      "sha256": "22e12cd426a699ebf36910d13e8e7204fcbaf188d993f8ce64ead7758f527859"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma8_seed2.csv",
+      "sha256": "1e9b57a37adb43be52f1dabf7e4e40aea006f6c5e1df3ad776eb703fe79bc76b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed2/s_sigma9_seed2.csv",
+      "sha256": "42d02c2a9ee0fc920937af1b8462e36a49d560b2f4f819b9a4b88736914e0460"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma10_seed3.csv",
+      "sha256": "bcb77d61c18889e1d3d3105b83c6c9a6d1ce438e85ab0126187b62ea3996aa51"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma2_seed3.csv",
+      "sha256": "9064887954c51a2dce36e7e257a8497ef60d7d2e5c570951256ce0f243857b10"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma3_seed3.csv",
+      "sha256": "bdb5e13b813729409ba7dd5b1f847ed1845e38057166756728423ef823c6e83a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma4_seed3.csv",
+      "sha256": "90feb00fff77840a4d9e157c5e7d3fcee1ce1155191617061c221e69a11d7fd5"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma5_seed3.csv",
+      "sha256": "f77feaee2daaf58125c6316248b352c7acda07ed71a1ed715ac420d8c7805abc"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma6_seed3.csv",
+      "sha256": "1abf3b33ff23a1adb13458979d25f756c420745fab1e67d9bd7ad815236ee103"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma7_seed3.csv",
+      "sha256": "ea595d0d1b760063472ea40af53a1c68065e2e00034712716aafcebae3a15691"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma8_seed3.csv",
+      "sha256": "6d4aedf6fb30682f78381876f8c8a391a580e2a5837a9a0c5c7455c0592dcc40"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/brass_sigma9_seed3.csv",
+      "sha256": "19bb5b0b666c51e3f6103be0664000083a9e77d3eb8906945721c98d33bcd7b7"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma10_seed3.csv",
+      "sha256": "9a0f0d956825444f3225cc5e48bd68233fab2abf9166084c357771835292e83d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma2_seed3.csv",
+      "sha256": "bf552929d6ee14bfa212b54a1ec2ab079a8c2e552058fdb21fb70bfdc64480c0"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma3_seed3.csv",
+      "sha256": "7ba878a39e89494af2ca05cbfc6f7d05763bac1bcfc69ac0b457dec10b3603fa"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma4_seed3.csv",
+      "sha256": "1b5a72d94b968730b8e3bfea8379635291effe3fffa9c8da8fe1d489bc0a5225"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma5_seed3.csv",
+      "sha256": "82d521198cfa1b5ecb6ff4dc328f46ceb5e3b39e9f58f053dd10ee73460625a8"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma6_seed3.csv",
+      "sha256": "7f755f4a9c899757f465826bd77428913d6935c453681274fbf95144d964d042"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma7_seed3.csv",
+      "sha256": "f53ea80e9609a0b2561ee9f5c4d694edeba24f4373e789e36841069e3e593a82"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma8_seed3.csv",
+      "sha256": "f90498d719c921ef6cd20d8d9cb30268f0793548de83d55893e55b858e77644f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/copper_sigma9_seed3.csv",
+      "sha256": "15ecd344aa45224643a4f59f3ae63b00c86c8fc1ce263b9c05083c09a10c968d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma10_seed3.csv",
+      "sha256": "6ec8b50ed37f95296d195432fad2ddbd4d340bc1effae2b11ce878e8254f9ee3"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma2_seed3.csv",
+      "sha256": "f1625fa764f61936b74f1553f5e9d1b7993db68110b5e1a8bfe9ccf927920420"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma3_seed3.csv",
+      "sha256": "d1c21ed5d616f6a1664b18df0542a8d297366be2012dffd971690e2a23ea5e4d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma4_seed3.csv",
+      "sha256": "f90c7323e94e939b1ac42bfa0676ecff1dc530e08cd41305055b1c16a857105d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma5_seed3.csv",
+      "sha256": "c5c5b48c73c04219548dcce3266c44dd884641a88d409ec44c14381fcdf808fe"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma6_seed3.csv",
+      "sha256": "eede4d2d54692375e30b1332ff3ccb8aaa12e39da5f6e06f65f355e733489f6d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma7_seed3.csv",
+      "sha256": "9ee2a43c7d69657fd745ab65d9e02feddf18378e349c458a780aa5de639a9a5a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma8_seed3.csv",
+      "sha256": "0a6a44ed9a1ff773602b40383a48571b0de419f41590dc08a650b526fdcf8d84"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/cube_sigma9_seed3.csv",
+      "sha256": "596e33f40d2e47b55d067e877caab2241571a7bd498f68c4b83e81c1dfa4cd46"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma10_seed3.csv",
+      "sha256": "83ecc2577dc42a432bb9ffa64dfd259fb4e8172bd22c6b21b9b2acfe853ba862"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma2_seed3.csv",
+      "sha256": "bf5aacc90736ce934a3820fb8d05891a28817affe4d5b26ebb7f1f69849f559b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma3_seed3.csv",
+      "sha256": "dfe29ab6364af030466da2a10e4224144a17c199148d3f86d4069b42fea793b9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma4_seed3.csv",
+      "sha256": "40fdd848a28bd5a810800ac6a7c9c967c739bc57d60566e4b77c951cebcc71f3"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma5_seed3.csv",
+      "sha256": "6a510e569e9332e5290cda30c259382ab0e913231f7cd61b496f2b7f6ce5514d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma6_seed3.csv",
+      "sha256": "dd3f76849c6c9c6f2b57e1beaae486b6680858a917d7ecc5fa2977b006bd453e"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma7_seed3.csv",
+      "sha256": "aef87b7a0f234c1ce9f756b55a8419a44039fd3ca9b57832f01cbc5039785795"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma8_seed3.csv",
+      "sha256": "315ae947cdc52ac200f9f0e516cbbd7ca4912281a5b0443377ca685fcc0d372f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/goss_sigma9_seed3.csv",
+      "sha256": "579b6d177bb402828230ccaf09d251711794073a5cf09b60514c75398cd388a5"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma10_seed3.csv",
+      "sha256": "3dca24996144e64dceecfb76606959bffa785f78ba95ea423e941c45bebe0d5c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma2_seed3.csv",
+      "sha256": "2f399fe04dca26da8a69cee6df3434c928911c819c677afb4a0746d4b9c6fbee"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma3_seed3.csv",
+      "sha256": "a71a5734f0281c86d938da2fcf4931cc8c05205328d7dc1c291c344c2ae55e5f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma4_seed3.csv",
+      "sha256": "c53b12f5560e5602c707329db07193f5208aa7619ea7d12dd69d4fd7a423ed1d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma5_seed3.csv",
+      "sha256": "9c62330a1e0e2f653135b40c152141db69d07117c3dce49d8d54629b88d352cb"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma6_seed3.csv",
+      "sha256": "1fd96e7126b1f73b42e0495921b2a33d8a20bb577a48b927426cd401fc8b239a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma7_seed3.csv",
+      "sha256": "81ec6128e48857291d4caf19e074bb8483d8cb84b3c55a9fa6ca9a2472af8858"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma8_seed3.csv",
+      "sha256": "a6521469080c619fab41e51bb91cda7f2dd145aea3cc740a901c168cb395a322"
+    },
+    {
+      "path": "inputs/orientation/texture_seed3/s_sigma9_seed3.csv",
+      "sha256": "625c8bc5bf009e0394325850445f5f0e2a8de82246ae6db0de38965b78d84de4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma10_seed4.csv",
+      "sha256": "4bd1b36a2c553dbc2bda887ba4da0af864c429e0b8bbfb9f0765da3ea5e4d673"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma2_seed4.csv",
+      "sha256": "18dd3512790a2550387d704f7843359bd78e4e01f14fdbb2ba4262e9ef1523bc"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma3_seed4.csv",
+      "sha256": "8dc9cdb88e36bd07d41509cc909242eb3e81068c8033ed98f776b0992ece9283"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma4_seed4.csv",
+      "sha256": "6fac1bd8ea9c9b7c567c3cd64fae2dc0bf38de49dfaba77127c41e594e3bff42"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma5_seed4.csv",
+      "sha256": "8689107bea56670b14a5a36f9e32dce3026d78ba1605feac2c16fedc1b937534"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma6_seed4.csv",
+      "sha256": "298cad61f19c7b8f0a64b05223b19a769d8599b6ae15cc6af9ada95539de50c9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma7_seed4.csv",
+      "sha256": "130a91722812602bee8359e98640748b0ee615fc41427d955e17e9ab62c47e34"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma8_seed4.csv",
+      "sha256": "0a70dbec8e5a35e6ccb80be679629759698e889d5ef650a97b770c7f98eae7af"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/brass_sigma9_seed4.csv",
+      "sha256": "14f942f10520c27c20e5c1389596612b1a89a5e84a6e12003f37b9cdc2c636c4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma10_seed4.csv",
+      "sha256": "deab14c8b01f0e1e08b249ef278194fb57c0e1c618c7ebaf2ad097f280da35be"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma2_seed4.csv",
+      "sha256": "2eb0db39435f6d0af121f81d2b3a0f122bd2d682d1722e183605412fe3bc5782"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma3_seed4.csv",
+      "sha256": "4c6b3288ac7cdc12e5d614fae9c5208124802e06270268c3b250b445bdd0a143"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma4_seed4.csv",
+      "sha256": "59a213fefc8b21a981a5c358dfbd2f8d815c49f9abcd1bc5e46b479d4f037d17"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma5_seed4.csv",
+      "sha256": "3cd9602153d5bf82cf3e2b935ca660b90e2e2c351473fb415a8c50882acc960a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma6_seed4.csv",
+      "sha256": "7a356ac22a56edcce226e67d7111735c725225d82cb1c735c47386079879645b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma7_seed4.csv",
+      "sha256": "15a11c2aae63af244f83214472352c0d08977292d70b72260571e4d515394d2f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma8_seed4.csv",
+      "sha256": "a1d1510dd1072e17ca206cb2121095c263db5d513b5aecf28f9ad320faca9652"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/copper_sigma9_seed4.csv",
+      "sha256": "3da73d2f4ad4e08d9b81ae97013c8384907a24adf575bdc5acc76e93d688b451"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma10_seed4.csv",
+      "sha256": "d6066ba9b445faec4d6b026112cb009256a5a46e5010003337e82be7ba7a4cb9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma2_seed4.csv",
+      "sha256": "941c9b5256210d4fb924c31d0516cc656511fb634af280677a0384469f6eb4f9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma3_seed4.csv",
+      "sha256": "fb05ed7b942ddd9f9445519cce54abf077bf7bb12ec34e0a9e4a6c3668925883"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma4_seed4.csv",
+      "sha256": "9c78315bb5702013ae0f2257a16b236ca74112da177acc7be54abbcf4dc5908a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma5_seed4.csv",
+      "sha256": "ebe63df765c05a150ab247e77b4064b1c1252c70bf49cc303aef1964301642ce"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma6_seed4.csv",
+      "sha256": "4e962aabcb65347520a6425c312372adf40c2f3df66e6335a9604d94ac9670ad"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma7_seed4.csv",
+      "sha256": "da7f30e9b34756421a973efec68b5ac685c94990b8142f1413eee4ee209c5a68"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma8_seed4.csv",
+      "sha256": "a2c7971b1e5444188caa7aa6fd882c8eedb093ccbd51ccc35902233d7f00bbd4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/cube_sigma9_seed4.csv",
+      "sha256": "7ad1d79a02aa00311607e4357439cc099f9d218cfb3805ddcef0455c32b0c178"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma10_seed4.csv",
+      "sha256": "530cb13a9cb9c59bf47c6b9a89189e812532fea864617b4f96a31307968dce30"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma2_seed4.csv",
+      "sha256": "f9a714c4860cd190f6c90e9ff4c5ab91aefba3dfefa05b825e014bfc6dadd0dd"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma3_seed4.csv",
+      "sha256": "af76ae7d5d843acef6e7943669ae316e9d316c16ed47a7f805dff27ea8cf0ade"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma4_seed4.csv",
+      "sha256": "533c7770b2177dc6b11f57c7ee49609625beaa06c10c0ddd1ec05a0f7c579465"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma5_seed4.csv",
+      "sha256": "0d29b584c5d1213d175730b0ea5cb37fae69ffb63cbd6b201ccce5ba4f2dd2d7"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma6_seed4.csv",
+      "sha256": "62ef1c4f1c9c87cc04671b2d9b851fe52b8c37a18091e26c001cd0e51fd7eaca"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma7_seed4.csv",
+      "sha256": "7667b763091a06633f35f9a9abb3f8da1da5128e4f7c527bba9c532cce4d5e24"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma8_seed4.csv",
+      "sha256": "c8a3d60cc5424565294c88af86ca279e997d930a9dabedebec93605cd1046e89"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/goss_sigma9_seed4.csv",
+      "sha256": "bc7fcad2179e1751acce053369a4bacf731a96fd2c93522fa7d7b9b2d784766b"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma10_seed4.csv",
+      "sha256": "6ad4a17c4df3bcedfd4094b5e3c655c340818ce24623c7ee2296c1e637a26277"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma2_seed4.csv",
+      "sha256": "2e7d33c3db36197ed805091c0a872bdffcb5d66a5915e28be7f2fe5727ff55f0"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma3_seed4.csv",
+      "sha256": "20e543e3d77266900e44bfb610a936bee9346692eec2472ee68c113cd7eb35ce"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma4_seed4.csv",
+      "sha256": "307f11f5cde5c597c83da40d3fff3ed16011ba11bb99447dc363c8a666a6627a"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma5_seed4.csv",
+      "sha256": "5a2bea0162682aef6bb3d0cdd8a0f7ac256c26d90b82f792d3419ec5b7b20a91"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma6_seed4.csv",
+      "sha256": "71f7ca57491573782388087c215dc933804f7f5c9e69342b7e74bc3b741bcf1c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma7_seed4.csv",
+      "sha256": "f47ecf67bcc7d309f4ee38e2e0dc2c909875248ea8e2b95cadcc678beb994aeb"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma8_seed4.csv",
+      "sha256": "50f2e765e953e1828cc7dc52a03ee8c838c0fe0b5cee289aaf18c01db811d4e8"
+    },
+    {
+      "path": "inputs/orientation/texture_seed4/s_sigma9_seed4.csv",
+      "sha256": "773963da2f690fbf78e561a2613439e977268c95824006237f110cf7e5d4ade1"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma10_seed5.csv",
+      "sha256": "c23c98c2ec1f63f256cd6df1cfc3734dfebabb308ead56251c2b32d178e06449"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma2_seed5.csv",
+      "sha256": "25bd8248bf1b406f0728312997ab68f1e8053333ba45c29bc72a3ba69ad3803c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma3_seed5.csv",
+      "sha256": "85030824242292d981d3181a8796b480eba116093351b33f4c5bacb188df505d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma4_seed5.csv",
+      "sha256": "d97e731f1b68a2d5f841df49a7148dccd56244ea82ed2847c73c01ef594cf359"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma5_seed5.csv",
+      "sha256": "cee98af0ec2f8d266ca0954009451e8e38f6d826abf117b4220643414536751e"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma6_seed5.csv",
+      "sha256": "a156eb421587511f3a7f6814e07da72a0729616dc740dd6110919e2bf3665b95"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma7_seed5.csv",
+      "sha256": "faed034e6c43888d0c56e7146bf68e820de58ec14ba17af0b5af9eb15870c66f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma8_seed5.csv",
+      "sha256": "7a508b5ae91ee44fc7bdbf119a03e727e2169be13689366615c41b2c0fcccca4"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/brass_sigma9_seed5.csv",
+      "sha256": "f696df44c75ca29827a764aabc47b102d8030c9ecb70ffef23e33ef36317b7cf"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma10_seed5.csv",
+      "sha256": "a45bf8e239ac1d3106791aa1ce2f2a508de0593db0aa78f4589013145de8f342"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma2_seed5.csv",
+      "sha256": "5542e59d226c82aab6a090b506b654f9de3df4cacc1b289312486c5d8ba6d1f9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma3_seed5.csv",
+      "sha256": "981cc69f2c14073d54e8da6f99c77a8c5f3aad750f7fd96eb51f722ad85d4d51"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma4_seed5.csv",
+      "sha256": "61abfe5c367736fa462d43ccba5e1a297548f1ce15a677a16448b79c4069a2e1"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma5_seed5.csv",
+      "sha256": "cadfecf2aeff1537fa865e1ccf83f21e704fcf3aee0abc77ab7067d55a400d76"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma6_seed5.csv",
+      "sha256": "a4b2e7e09d14ad522fcc5ea8a0d6dfc6f2511895cbce173178ddb61f19b9465e"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma7_seed5.csv",
+      "sha256": "101d70f257398986883714097c81ed8a2910ff90a1fe00cf6cab8c6e76f1f801"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma8_seed5.csv",
+      "sha256": "7a07bcb72133062a5aae80e8feaef9b3f4b4679ca754d8cd3be3d473bf8ece1c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/copper_sigma9_seed5.csv",
+      "sha256": "6259bb03408656f8bb188c55ed3c89e1cfa46ae96f19616dc928bed3afe7c375"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma10_seed5.csv",
+      "sha256": "2be8a23197066e698b2f5b3183a50b1a8568087dd48238b3937e6a84adafa66e"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma2_seed5.csv",
+      "sha256": "10b478ce4df28272263fb4291e353f3547082608ea6ece087323ad05bbb71f35"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma3_seed5.csv",
+      "sha256": "1a3067d7518623bd4cc805d99a979f7a0e8186696832cb081ff85f3afb5dbdd3"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma4_seed5.csv",
+      "sha256": "17a4a954e51bae226dbebbdb70947877c8d316614476f39293e17d261be7f2a8"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma5_seed5.csv",
+      "sha256": "ca7669751b55b14a30e7393491e5c90a015337cbc4868889f813e0aa68a44ac6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma6_seed5.csv",
+      "sha256": "67f77f0bd9d869e14f4aa963df67be159c8bcb9898fa48d99466edf60063291d"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma7_seed5.csv",
+      "sha256": "a7ff194092530682b8743015b056825cbce0d4213dde79f48d9cd2f2540b4d22"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma8_seed5.csv",
+      "sha256": "28170a5a0e3730e46be80f4bf530dad1221d45438eff6138bd05fe6d0cdc57cd"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/cube_sigma9_seed5.csv",
+      "sha256": "1a2cb50a3073a6b101f2d20f3c6a8d9605caf6b138dce30ac4c00a42d2bb2662"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma10_seed5.csv",
+      "sha256": "87c8ac24c92899d8251af613f49ca2f402f024d7aad64f5312ee61c37d94aef6"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma2_seed5.csv",
+      "sha256": "4b39097e429bf38322711361b32eccc4692364d12f5fea138724840bba3b25d9"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma3_seed5.csv",
+      "sha256": "979e8084ace2d5367b364d97d786638c952ccf8c68378e173765c5b815bfc979"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma4_seed5.csv",
+      "sha256": "54989e1e28c417b1aaed140636eb988e43c33b13bb92f63a3c4501839cfc34e5"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma5_seed5.csv",
+      "sha256": "031796b61a86b739572fc463bb1a2d03fe73be9eac530b128859d25c1a0abc94"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma6_seed5.csv",
+      "sha256": "1cb61eb5c307c12ce84b4e4318ee0ecb8e536f8d8006096a0312ad9ff7ebb825"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma7_seed5.csv",
+      "sha256": "14d7928743cc146a97b7a281c4251a0b8257775d0c1117170ee24b2af739fc36"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma8_seed5.csv",
+      "sha256": "70a761267b290e79168a3b74286671104fe4fb0e96d078171b9c978b91b75f98"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/goss_sigma9_seed5.csv",
+      "sha256": "b5f7ce3c2f22782a128f4cbd573e1f00bf9a75943b91031b8c4ffe0e2b399433"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma10_seed5.csv",
+      "sha256": "1b63c25b40a2c1fe3cffe20ba980b06e137da40d4a3c020d5f5a4d6e36a1ba56"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma2_seed5.csv",
+      "sha256": "04f7ff9455db0f7acc057df2df287f447af7bd7e12641971ae3856456611214e"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma3_seed5.csv",
+      "sha256": "76f48dacab0880527789cb45de658827e81c52fc8959214f1acb03ff42aadd8f"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma4_seed5.csv",
+      "sha256": "85d1c3fc3c63ec2c152c1bd74e6ceb2d4efdda56db08cab8bfe1efc53dc90a78"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma5_seed5.csv",
+      "sha256": "643708e8061a73249edd42314fc45520dd0fd2c4d72c2df979b4027c4998cfac"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma6_seed5.csv",
+      "sha256": "f6ab4cc42c4be1169e0f6f86b000f85ea669628ab54665e8a8b38fa020add173"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma7_seed5.csv",
+      "sha256": "2da5af4c6797e674371e77bc0aa30b8ff559f2366fd443b972a0d7c601eb2660"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma8_seed5.csv",
+      "sha256": "35ad8eaae12113a3f29ae8ae848429cf2ca9ad8a12b2d641f1d24726bb43b43c"
+    },
+    {
+      "path": "inputs/orientation/texture_seed5/s_sigma9_seed5.csv",
+      "sha256": "5c75d18c7c15def3d46d12acb9164123b4749d841e5305926752ece290d61462"
+    }
+  ],
+  "mesh_and_boundary_sources": [
+    {
+      "path": "inputs/keywords/consts/partset_seed1.k",
+      "sha256": "bc747ba16e500b5e92afeca93cd11fbb5b0e48bd19679b4cd3db4a2e123baf10"
+    },
+    {
+      "path": "inputs/keywords/consts/partset_seed2.k",
+      "sha256": "035bce05fbe18236fbe736ad0632eac72c244e846cbd930eed1f6a4390487e38"
+    },
+    {
+      "path": "inputs/keywords/consts/partset_seed3.k",
+      "sha256": "b7abadcaa58c3584ac5d3830ab9771bdf91f054cd5f3f33f8d06e5034f11026c"
+    },
+    {
+      "path": "inputs/keywords/consts/partset_seed4.k",
+      "sha256": "394fff833cd0d99a3529a68c1dd8bae6398400fbad1b761a1eab33f3531a8900"
+    },
+    {
+      "path": "inputs/keywords/consts/partset_seed5.k",
+      "sha256": "7f56d8802daf0543377179958c3a024747a3bc210e5064c9cf1b238b1d7b9c5f"
+    },
+    {
+      "path": "inputs/keywords/keyword_rho_-0.5/boundary_rho_-0.5.k",
+      "sha256": "5e50d92c34c51ad75cbdacd14f5281ccca7d7db6a9984bcf06d15ec3032523de"
+    },
+    {
+      "path": "inputs/keywords/keyword_rho_0/boundary_rho_0.k",
+      "sha256": "d02463945548b4cf153734390c4f9d4e57dcf49aa62ab3d4ff473347dc211d53"
+    },
+    {
+      "path": "inputs/keywords/keyword_rho_1/boundary_rho_1.k",
+      "sha256": "01fddf65b4cbb44fb838dfce5aafc5382e56ce2af7549594d7f7df9ef0446184"
+    }
+  ]
+}

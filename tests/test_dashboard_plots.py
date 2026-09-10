@@ -58,12 +58,22 @@ def test_deformed_surface_uses_export_ids_and_only_interpart_edges(tmp_path):
     np.testing.assert_allclose(polygons[0], [[10,20], [12,20], [13,23], [11,23]])
     np.testing.assert_allclose(segments, [[[12,20], [13,23]]])
     metrics = tmp_path / "metrics.csv"
-    metrics.write_text("part_id,gos_deg,grain_rotation_deg\n7,1,2\n8,3,4\n")
-    for metric in ("gos", "rotation"):
+    metrics.write_text("part_id,gos_deg,grain_rotation_deg,taylor_factor\n7,1,2,2.5\n8,3,4,3.5\n")
+    for metric in ("gos", "rotation", "taylor"):
         figure = plots.orientation_figure(metrics, tmp_path, metric=metric,
                                           title=metric, coordinates_path=coords)
         np.testing.assert_allclose(figure.axes[0].collections[0].get_paths()[0].vertices[:4], polygons[0])
+        np.testing.assert_allclose(figure.axes[0].collections[-1].get_segments(), segments)
         plt.close(figure)
+    shear = tmp_path / "shear.csv"
+    shear.write_text(",".join(["element_id", plots.TOTAL_SHEAR_COLUMN, *plots.SLIP_COLUMNS])+"\n"
+                     + "12,0.2,"+",".join(["0"]*12)+"\n"
+                     + "11,0.1,"+",".join(["0"]*12)+"\n")
+    figure = plots.shear_figure(shear, tmp_path, title="shear", coordinates_path=coords)
+    np.testing.assert_allclose(figure.axes[0].collections[0].get_paths()[0].vertices[:4], polygons[0])
+    np.testing.assert_allclose(figure.axes[0].collections[0].get_array(), [0.1, 0.2])
+    np.testing.assert_allclose(figure.axes[0].collections[-1].get_segments(), segments)
+    plt.close(figure)
     figure = plots.height_figure(coords, title="height", value_range=(0, 2), spatial_model_dir=tmp_path)
     np.testing.assert_allclose(figure.axes[0].collections[-1].get_segments(), segments)
     plt.close(figure)
@@ -81,3 +91,17 @@ def test_deformed_surface_rejects_incomplete_raw_export(tmp_path, monkeypatch):
     coords.write_text("0,0,1\n1,0,1\n0,1,1\n")
     with pytest.raises(ValueError, match="Expected 6"):
         plots.deformed_surface(tmp_path, coords)
+
+
+def test_slip_concentration_averages_systems_before_ratio():
+    slips = np.zeros((4, 12))
+    slips[0, 0] = 3
+    slips[1, 1] = 1
+    slips[2, :] = 2
+    result = plots.grain_slip_concentration([7, 7, 8, 9], slips)
+    # Both elements individually have concentration 1, but grain 7 has .75.
+    np.testing.assert_allclose(result, [.75, .75, 1 / 12, 0])
+    import pytest
+    slips[0, 0] = np.nan
+    with pytest.raises(ValueError, match="finite"):
+        plots.grain_slip_concentration([7, 7, 8, 9], slips)

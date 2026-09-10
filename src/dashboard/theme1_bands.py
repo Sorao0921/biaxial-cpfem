@@ -11,6 +11,8 @@ import io
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+
+from src.dashboard.style import TICK_SIZE, apply_figure_style
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -71,7 +73,7 @@ def attach_equivalent_strain(data: pd.DataFrame) -> pd.DataFrame:
 def comparison_figure(data: pd.DataFrame, varying: str, metric: str, context: str):
     seeds = sorted(data.seed.unique())
     levels = sorted(data[varying].unique())
-    fig, axes = plt.subplots(len(seeds), 1, figsize=(9, 3.1 * len(seeds)),
+    fig, axes = plt.subplots(len(seeds), 1, figsize=(9, 3.1 * len(seeds) + 0.6),
                              squeeze=False, sharex=True, sharey=True, layout="constrained")
     fraction = metric == "energy_fraction"
     maximum = data[metric].max() * (100 if fraction else 1)
@@ -90,16 +92,18 @@ def comparison_figure(data: pd.DataFrame, varying: str, metric: str, context: st
                        hatch=hatch, edgecolor="#333333", linewidth=.4)
                 ax.set_xticks(x, [str(v) for v in levels])
         ax.set_title(f"seed {seed} | {subset.case_id.nunique()} cases", loc="left", fontsize=11)
-        ax.set_ylabel("Band share (%)" if fraction else "Spectral energy (height unit squared)")
+        ax.set_ylabel("Band share (%)" if fraction else "Spectral energy")
         ax.set_ylim(0, 100 if fraction else (maximum * 1.12 or 1))
         ax.grid(axis="y", alpha=.2)
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
-    axes[0, 0].legend(ncol=3, loc="upper right")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, ncol=3, loc="outside lower center",
+               fontsize=TICK_SIZE, frameon=False)
     axes[-1, 0].set_xlabel(r"Equivalent strain $\varepsilon_{eq}$ (–)" if varying == "state" else varying)
     label = "Band shares" if fraction else "Absolute band energies"
     fig.suptitle(f"Grain-mean height: {label}\n{context}", fontsize=12)
-    return fig
+    return apply_figure_style(fig)
 
 
 @st.cache_data(show_spinner=False)
@@ -150,6 +154,7 @@ def render_band_comparison() -> None:
         st.info(f"3帯域の合計が0のケースが{zero_count}件あります。保存値に従い比率を0%で表示します。")
     context = ", ".join(f"{key}={value}" for key, value in fixed.items())
     st.caption(f"固定条件: {context} ｜ 表示: {selected.case_id.nunique()} ケース。seed間の平均化は行いません。")
+    downloads = []
     for metric, title in (("energy", "絶対エネルギー"), ("energy_fraction", "帯域比率")):
         st.subheader(title)
         figure = comparison_figure(selected, varying, metric, context)
@@ -157,8 +162,11 @@ def render_band_comparison() -> None:
         buffer = io.BytesIO()
         figure.savefig(buffer, format="png", dpi=180, bbox_inches="tight")
         plt.close(figure)
-        st.download_button(f"{title}のPNGを保存", buffer.getvalue(),
-                           file_name=f"theme1_{varying}_{metric}.png", mime="image/png")
+        downloads.append((title, metric, buffer.getvalue()))
+    with st.expander("PNGを保存"):
+        for title, metric, data in downloads:
+            st.download_button(f"{title}のPNGを保存", data,
+                               file_name=f"theme1_{varying}_{metric}.png", mime="image/png")
     with st.expander("表示データと出典"):
         st.caption(str(path))
         st.dataframe(selected, hide_index=True)

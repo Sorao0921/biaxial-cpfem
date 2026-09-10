@@ -48,6 +48,7 @@ class PostDirectories:
     raw_angle_dir: Path
     id_set_angle_dir: Path
     orientation_metrics_dir: Path
+    taylor_factor_dir: Path
 
     raw_shear_strain_dir: Path
     id_set_shear_strain_dir: Path
@@ -154,6 +155,7 @@ def build_post_directories(
         raw_angle_dir=raw_angle_dir,
         id_set_angle_dir=id_set_angle_dir,
         orientation_metrics_dir=orientation_metrics_dir,
+        taylor_factor_dir=angle_dir / "taylor_factor",
         raw_shear_strain_dir=raw_shear_strain_dir,
         id_set_shear_strain_dir=id_set_shear_strain_dir,
     )

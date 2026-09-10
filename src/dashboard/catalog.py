@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Literal
 
-MetricKind = Literal["height", "orientation", "shear", "initial"]
+MetricKind = Literal["height", "orientation", "shear", "initial", "taylor"]
 
 _CASE_RE = re.compile(
     r"(?P<texture>brass|copper|cube|goss|s)_sd(?P<sd>\d+)_seed(?P<seed>\d+)",
@@ -96,11 +96,12 @@ def scan_outputs(
         key = ("shear", *case)
         records[key] = OutputRecord("shear", *case, path, "id_set")
 
-    initial_dir = outputs_dir.parent / "database" / "taylor_factor_initial"
-    for path in initial_dir.glob("rho_*/rho_*_seed*/taylor_factor/initial/*state01.csv"):
+    for path in outputs_dir.glob("rho_*/rho_*_seed*/angles/taylor_factor/*_sd*_seed*/taylor_factor_*_state*.csv"):
         case = _case_from_path(path)
-        if case is not None and case[-1] == 1:
-            records[("initial", *case)] = OutputRecord("initial", *case, path, "initial_grain_metrics")
+        if case is not None and case[-1] >= 1:
+            kind = "initial" if case[-1] == 1 else "taylor"
+            records[(kind, *case)] = OutputRecord(kind, *case, path,
+                "initial_grain_metrics" if kind == "initial" else "state_grain_mean")
 
     return sorted(
         records.values(),

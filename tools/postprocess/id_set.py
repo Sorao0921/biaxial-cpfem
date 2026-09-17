@@ -13,7 +13,7 @@ from src.config.pipeline_paths import (
 from src.extract_process.eid_pid_mapping import ElementPartMapper
 
 # Settings
-RHO = 1
+RHO = -0.5
 SEED = 3
 
 EULER_COLUMNS = [

@@ -17,7 +17,7 @@ uv run python tools/UI/run_dashboard.py
 ```
 
 ブラウザでローカルUIが開きます。初回は `outputs/` を走査するため、表示まで少し時間がかかる場合があります。
-各マップは元CSVから動的に描画され、パネル下部の「PNGを保存」から必要な図だけを保存できます。
+各マップは元CSVから動的に描画されます。「表示中の全マップを1枚のPNGで保存」で、表示順と設定中の列数に合わせた白背景の200 dpi画像を保存できます。各マップのタイトル・目盛り・カラーバーを含み、スライドへそのまま貼り付けられます。パネル下部の「PNGを保存」から個別の図も保存できます。
 
 ## 比較モード
 
@@ -61,7 +61,7 @@ state推移は各rho・seedの`eps_equivalent.csv`の`eps_eq`を横軸とした�
 「Taylor factor（state別）」を選択できます。変化させる条件を `state` にすると、
 同じrho・seed・texture・sdの利用可能なstateを横並びに表示します。
 「同じモデルで複数指標を比較」では、GOS等と同じstateのTaylor factorを追加表示します。
-Taylor factor・累積せん断ひずみ・GOS・粒回転の描画形状は、そのstateの表面座標を使用し、同じ結晶粒界を黒線で重ねます。色範囲は全パネル共通でサイドバーから変更できます。
+Taylor factor・累積せん断ひずみ・GOS・粒回転の描画形状は、そのstateの表面座標を使用し、同じ結晶粒界を黒線で重ねます。Taylor factorの色範囲は表示対象の最小値・最大値から自動調整します。state別とInitial Taylor factorの両方の表示値から共通範囲を決めます。パラメータ比較でも表示中の全Taylorパネルで共通範囲を使います。
 初期方位の表示はUIから外しています。初期Taylor factorは複数指標比較の7枚目に表示し、state01の値・形状・粒界に固定します。6枚目のstate別Taylor factorと同じ色範囲を使います。
 
 保存先: `outputs/rho_*/rho_*_seed*/angles/taylor_factor/{texture}_sd{sd}_seed{seed}/taylor_factor_*_stateNN.csv`。
@@ -108,3 +108,36 @@ state別Taylor factor、初期Taylor factorです。
 全系ゼロの場合は0（未活動）、均等すべりでは1/12、1系のみでは1。
 色範囲は0〜1固定。変形後座標、端部除去範囲、粒界は他のstate別指標と共通です。
 Theme1と同じ比の定義ですが、集計対象はこのUIで表示する表面範囲です。
+
+### 8枚目：z方向すべり活動（マクロ相当ひずみ増分あたり）
+
+定義は `Az = Σα [(Γα(state i) − Γα(state i−1)) / Δeps_eq] |sα,z|`。
+12系の番号を固定して差分を取り、活性系をstateごとに選び直したりTaylorモデルから推定したりしません。結晶回転による方向変化は区間開始時の要素方位で反映します。
+`eps_equivalent.csv` の `eps_eq` 列の1行目をstate01に対応させ、隣接stateの差を分母に使います。区間量・実時間モード・Δτの手入力はありません。
+
+計算とマッピングは分離しています。
+
+- `src/crystal_plasticity/slip_activity.py`: 要素ごとの計算式。
+- `src/crystal_plasticity/slip_activity_pipeline.py`: 累積値・要素方位・マクロひずみの読込、ID結合、結果CSV保存と更新判定。
+- `src/dashboard/plots.py`: 保存済み要素値をelement_idで結合し、表示表面のelementごとに描画。粒内平均は行いません。生のすべりデータからの計算は行いません。
+
+単独計算（座標・空間モデル・UIは不要）:
+
+```sh
+.venv/bin/python -m tools.postprocess.calculate_slip_activity --rho 0 --seed 1 --texture cube --sd 2 --state 2
+```
+
+入力は `shear_strains/id_set` を優先し、なければ `shear_strains/rawdata` の12系累積値を読みます。ケースフォルダ内の `state2.csv` / `state02.csv` も使用できます。総累積列やpart_idは計算に不要ですがelement_idと12系の列は必要です。
+方位は `angles/id_set` または `angles/rawdata` の区間開始時の要素Bunge方位（phi1,Phi,phi2、rad）。
+保存先は `shear_strains/z_slip_activity/{case}/z_slip_activity_{case}_stateNN.csv`。要素ID、Az、Rz、12系のマクロひずみあたり活動増分、区間のstateとひずみを保存します。入力・計算コード・出力ハッシュで更新を判定します。
+
+すべり方向の既定順序は `external/dyn_umats_from_n/dyn21umats_0710.F` の `m(:,1:12)`（<110>、sは面法線）です。解析UMATで順序が違う場合は `inputs/slip_directions.csv` に `slip_id,sx,sy,sz` の12行を保存してください。試料座標へ変換する前の結晶座標方向を指定し、単位ベクトルへ正規化します。UIでのアップロードや確認操作は不要です。
+
+state01、直前state・方位・マクロひずみの欠損、非正のひずみ増分は未計算として表示します。欠損や初期すべりをゼロで補いません。
+形状・粒界・端部除去範囲は他の変形後指標と共通です。絶対値活動なので上昇・下降の符号はなく、面法線を含まないためz変位や塑性ひずみzz成分そのものではありません。
+
+「パラメータを変えて同じ指標を比較」でもZ-directed slip activityを選択できます。sd / rho / stateを比較し、表示中のelement値の最大値から0〜共通上限を自動設定します。state02以降を対象とし、区間データの欠損は条件ごとに表示します。個別PNG・全マップをまとめたPNGの保存にも対応します。
+
+PNGのファイル名には指標名、rho、seed、texture、sd、stateを含めます。z方向活動には区間開始state、初期Taylorには実際のstate01と表示範囲の選択stateを記録します。まとめたPNGは表示中の各条件値を列挙し、比較するstateが飛び飛びの場合も判別できます。
+
+パラメータ比較では、表示値が均一なstate01の高さ・GOS・粒回転マップを候補から除外します（丸め誤差の許容幅1e-12）。値にばらつきがある初期マップとstate02以降は残します。まとめたPNGにも除外後のマップのみを含めます。

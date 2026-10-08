@@ -1,0 +1,16 @@
+{
+  "signature": {
+    "sources": {
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/outputs/rho_1/rho_1_seed1/shear_strains/id_set/id_set_shear_strain_brass_sd2_seed1/shear_strain_brass_sd2_seed1_state07.csv": "349f11f770e7c6276fe29e03223698fa26add89563ff1895683e9619f3bfa44f",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/outputs/rho_1/rho_1_seed1/shear_strains/id_set/id_set_shear_strain_brass_sd2_seed1/shear_strain_brass_sd2_seed1_state08.csv": "49653f5d75df306039a77c45f945d9857f36c9720ca3d84d420eaf31f88bffd7",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/outputs/rho_1/rho_1_seed1/angles/id_set/id_set_bunge_euler_brass_sd2_seed1/bunge_euler_brass_sd2_seed1_state07.csv": "7a7ba467e9c45468a776c75dc9021cc783d24be0dd9593a65fbb34306c56fabe",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/outputs/rho_1/rho_1_seed1/eps_equivalent.csv": "d415dfb74ec60277039c7b3a18b770f7d9afd9bf95be65753378bc582285b13b",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/src/crystal_plasticity/slip_activity_pipeline.py": "d07ce6ee22184ba823b01e14d49b7aa7074d883e6e9d3d5a161ff228495ce866",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/src/crystal_plasticity/slip_activity.py": "b0c8206ac77752bcfffb18d56ef412fddf222a699c348eb6bba5af485a5b5915",
+      "/Users/Owner/dev/projects/si_masterthesis/pipeline/src/crystal_plasticity/taylor_factor.py": "5df788d9c52f2d8b42a657c2d16970c17308c9e9d7355bcdd771277c3b0b8545"
+    },
+    "direction_order": "dyn21umats_0710.F m(:,1:12)",
+    "orientation_state": 7
+  },
+  "output_sha256": "a8fe5deb89884dd06cf966642dad2269d81ada172a061fa6ba459036d45bdce9"
+}

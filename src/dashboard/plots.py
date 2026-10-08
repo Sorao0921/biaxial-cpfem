@@ -5,14 +5,13 @@ from functools import lru_cache
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-
-from src.dashboard.style import apply_figure_style
 import matplotlib.tri as mtri
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
 
+from src.dashboard.style import apply_figure_style
 from src.mapping.plot_style import HEIGHT_AXIS_TICK_INTERVAL, HEIGHT_SCALE
 from src.mapping.spatial_model_plot import _projected_polygons, load_spatial_model
 
@@ -41,9 +40,7 @@ def read_shear_strain_data(
     if len(np.unique(element_ids)) != len(element_ids):
         raise ValueError("Shear-strain CSV contains duplicate element_id values.")
     gamma_total = np.array([float(row[TOTAL_SHEAR_COLUMN]) for row in rows])
-    slips = np.array(
-        [[float(row[column]) for column in SLIP_COLUMNS] for row in rows]
-    )
+    slips = np.array([[float(row[column]) for column in SLIP_COLUMNS] for row in rows])
     if np.any(gamma_total < 0) or np.any(slips < 0):
         raise ValueError("Accumulated shear strains must not be negative.")
     return element_ids, gamma_total, slips
@@ -90,7 +87,9 @@ def surface_topology(spatial_model_dir: Path | str):
     indices = {int(row[0]): i + 1 for i, row in enumerate(top)}
     faces, ids, parts = [], [], []
     for element in elements:
-        face = list(dict.fromkeys(indices[int(n)] for n in element[5:] if int(n) in indices))
+        face = list(
+            dict.fromkeys(indices[int(n)] for n in element[5:] if int(n) in indices)
+        )
         if len(face) < 3:
             continue
         xy = top[np.array(face) - 1, 1:3]
@@ -107,8 +106,12 @@ def surface_topology(spatial_model_dir: Path | str):
     return np.array(ids), np.array(parts), faces, boundaries, len(top)
 
 
-def deformed_surface(spatial_model_dir: Path | str, coordinates_path: Path | str,
-                     *, reference_geometry: bool = False):
+def deformed_surface(
+    spatial_model_dir: Path | str,
+    coordinates_path: Path | str,
+    *,
+    reference_geometry: bool = False,
+):
     """Reconstruct visible faces and grain edges from current surface positions."""
     ids, parts, faces, boundaries, count = surface_topology(spatial_model_dir)
     path = Path(coordinates_path)
@@ -118,29 +121,42 @@ def deformed_surface(spatial_model_dir: Path | str, coordinates_path: Path | str
     data = np.loadtxt(path, delimiter=",", skiprows=int(header), ndmin=2)
     if data.shape[1] == 3:
         if len(data) != count:
-            raise ValueError(f"Expected {count} surface coordinate rows, got {len(data)}.")
+            raise ValueError(
+                f"Expected {count} surface coordinate rows, got {len(data)}."
+            )
         node_ids, xyz = np.arange(1, count + 1), data
     elif data.shape[1] == 4:
         node_ids, xyz = data[:, 0], data[:, 1:4]
     else:
         raise ValueError("Expected x/y/z or surface-row-id/x/y/z coordinates.")
-    if (not np.isfinite(data).all() or np.any(node_ids != node_ids.astype(int))
-            or len(np.unique(node_ids)) != len(node_ids)
-            or np.any(node_ids < 1) or np.any(node_ids > count)):
+    if (
+        not np.isfinite(data).all()
+        or np.any(node_ids != node_ids.astype(int))
+        or len(np.unique(node_ids)) != len(node_ids)
+        or np.any(node_ids < 1)
+        or np.any(node_ids > count)
+    ):
         raise ValueError("Invalid or duplicate surface node IDs/coordinates.")
     if reference_geometry:
         # Use only the exported node selection; coordinates stay undeformed.
-        nodes = np.loadtxt(Path(spatial_model_dir)/"nodes.csv", delimiter=",", skiprows=1, ndmin=2)
-        top = nodes[np.isclose(nodes[:,3], nodes[:,3].max())]
-        top = top[np.argsort(top[:,0])]
-        xyz = top[node_ids.astype(int)-1,1:4]
+        nodes = np.loadtxt(
+            Path(spatial_model_dir) / "nodes.csv", delimiter=",", skiprows=1, ndmin=2
+        )
+        top = nodes[np.isclose(nodes[:, 3], nodes[:, 3].max())]
+        top = top[np.argsort(top[:, 0])]
+        xyz = top[node_ids.astype(int) - 1, 1:4]
     positions = {int(n): point[:2] for n, point in zip(node_ids, xyz)}
-    selected = [i for i, face in enumerate(faces) if all(int(n) in positions for n in face)]
+    selected = [
+        i for i, face in enumerate(faces) if all(int(n) in positions for n in face)
+    ]
     if not selected:
         raise ValueError("Coordinates contain no complete surface elements.")
     polygons = [np.array([positions[int(n)] for n in faces[i]]) for i in selected]
-    segments = [np.array([positions[a], positions[b]]) for a, b in boundaries
-                if a in positions and b in positions]
+    segments = [
+        np.array([positions[a], positions[b]])
+        for a, b in boundaries
+        if a in positions and b in positions
+    ]
     return ids[selected], parts[selected], polygons, segments
 
 
@@ -181,7 +197,11 @@ def height_figure(
 
 
 def read_grain_metric(path: Path | str, metric: str) -> dict[int, float]:
-    column = {"gos": "gos_deg", "rotation": "grain_rotation_deg", "taylor": "taylor_factor"}[metric]
+    column = {
+        "gos": "gos_deg",
+        "rotation": "grain_rotation_deg",
+        "taylor": "taylor_factor",
+    }[metric]
     with Path(path).open(newline="", encoding="utf-8") as source:
         reader = csv.DictReader(source)
         if not reader.fieldnames or not {"part_id", column}.issubset(reader.fieldnames):
@@ -199,6 +219,34 @@ def surface_polygons(
     return element_ids[selected], parts[selected], _projected_polygons(nodes[selected])
 
 
+def uniform_initial_map(metrics_path, spatial_model_dir, coordinates_path, *, metric):
+    """Check uniformity of visible initial values, allowing only rounding noise."""
+    if metric == "height":
+        values = read_height(coordinates_path)[2]
+    else:
+        by_part = read_grain_metric(metrics_path, metric)
+        _, parts, _, _ = deformed_surface(spatial_model_dir, coordinates_path)
+        values = np.array([by_part[int(part)] for part in np.unique(parts)])
+    values = np.asarray(values, dtype=float)
+    return bool(len(values) and np.isfinite(values).all()
+                and np.allclose(values, values[0], rtol=0, atol=1e-12))
+
+
+def shared_taylor_range(datasets):
+    """Common automatic limits over only the parts visible in all supplied panels."""
+    values = []
+    for metrics_path, spatial_model_dir, coordinates_path in datasets:
+        by_part = read_grain_metric(metrics_path, "taylor")
+        _, parts, _, _ = deformed_surface(spatial_model_dir, coordinates_path)
+        if not set(map(int, parts)).issubset(by_part):
+            raise ValueError("Taylor metrics are missing for displayed surface parts")
+        values.extend(by_part[int(part)] for part in np.unique(parts))
+    values = np.asarray(values, dtype=float)
+    if not len(values) or not np.isfinite(values).all():
+        raise ValueError("Expected finite displayed Taylor factors")
+    return _nonzero_range(float(values.min()), float(values.max()))
+
+
 def orientation_figure(
     metrics_path: Path | str,
     spatial_model_dir: Path | str,
@@ -214,7 +262,9 @@ def orientation_figure(
     if coordinates_path is None:
         _, parts, polygons = surface_polygons(spatial_model_dir)
     else:
-        _, parts, polygons, segments = deformed_surface(spatial_model_dir, coordinates_path)
+        _, parts, polygons, segments = deformed_surface(
+            spatial_model_dir, coordinates_path
+        )
     missing = sorted(set(map(int, parts)).difference(by_part))
     if missing:
         raise ValueError(f"Metrics are missing for {len(missing)} part(s).")
@@ -263,8 +313,9 @@ def grain_slip_concentration(parts, slips):
     np.add.at(sums, inverse, slips)
     # Element counts cancel in the ratio of grain means.
     totals = sums.sum(axis=1)
-    ratios = np.divide(sums.max(axis=1), totals,
-                       out=np.zeros_like(totals), where=totals > 0)
+    ratios = np.divide(
+        sums.max(axis=1), totals, out=np.zeros_like(totals), where=totals > 0
+    )
     return ratios[inverse]
 
 
@@ -284,16 +335,20 @@ def shear_figure(
     if coordinates_path is None:
         surface_ids, parts, polygons = surface_polygons(spatial_model_dir)
     else:
-        surface_ids, parts, polygons, segments = deformed_surface(spatial_model_dir, coordinates_path)
+        surface_ids, parts, polygons, segments = deformed_surface(
+            spatial_model_dir, coordinates_path
+        )
     missing = sorted(set(map(int, surface_ids)).difference(value_by_id))
     if missing:
-        raise ValueError(f"Shear-strain data are missing for {len(missing)} surface element(s).")
+        raise ValueError(
+            f"Shear-strain data are missing for {len(missing)} surface element(s)."
+        )
     values = np.array([value_by_id[int(element_id)] for element_id in surface_ids])
     if metric == "concentration":
         index_by_id = {int(eid): i for i, eid in enumerate(value_ids)}
         selected_slips = slips[[index_by_id[int(eid)] for eid in surface_ids]]
         values = grain_slip_concentration(parts, selected_slips)
-        value_range = (0., 1.) if value_range is None else value_range
+        value_range = (0.0, 1.0) if value_range is None else value_range
     elif metric != "total":
         raise ValueError(f"Unknown shear metric: {metric}")
     lower, upper = value_range or (float(np.nanmin(values)), float(np.nanmax(values)))
@@ -319,7 +374,13 @@ def shear_figure(
     axis.set_xlabel("x")
     axis.set_ylabel("y")
     axis.set_title(title)
-    figure.colorbar(collection, ax=axis, label="Slip concentration" if metric == "concentration" else r"$\Gamma_{total}$")
+    figure.colorbar(
+        collection,
+        ax=axis,
+        label="Slip concentration"
+        if metric == "concentration"
+        else r"$\Gamma_{total}$",
+    )
     return apply_figure_style(figure)
 
 
@@ -330,23 +391,39 @@ def _nonzero_range(lower: float, upper: float) -> tuple[float, float]:
 
 
 INITIAL_METRICS = {
-    "axis_angle": (None, "Initial axis + angle (state01)", "deg", (0., 65.)),
-    "angle": (None, "Initial reference angle (state01)", "deg", (0., 65.)),
-    "ipf_nd": (None, "Initial ND IPF (state01)", "", (0., 1.)),
-    "taylor": ("taylor_factor", "Initial Taylor factor", "M", (1.5, 4.5)),
-    "phi1": ("phi1_rad", "Initial orientation: phi1 (state01)", "deg", (0., 360.)),
-    "Phi": ("Phi_rad", "Initial orientation: Phi (state01)", "deg", (0., 180.)),
-    "phi2": ("phi2_rad", "Initial orientation: phi2 (state01)", "deg", (0., 360.)),
+    "axis_angle": (None, "Initial axis + angle (state01)", "deg", (0.0, 65.0)),
+    "angle": (None, "Initial reference angle (state01)", "deg", (0.0, 65.0)),
+    "ipf_nd": (None, "Initial ND IPF (state01)", "", (0.0, 1.0)),
+    "taylor": ("taylor_factor", "Initial Taylor factor", "M", None),
+    "phi1": ("phi1_rad", "Initial orientation: phi1 (state01)", "deg", (0.0, 360.0)),
+    "Phi": ("Phi_rad", "Initial orientation: Phi (state01)", "deg", (0.0, 180.0)),
+    "phi2": ("phi2_rad", "Initial orientation: phi2 (state01)", "deg", (0.0, 360.0)),
 }
 
 
-def initial_figure(metrics_path, spatial_model_dir, *, metric="taylor", title=None,
-                   max_angle=65., exponent=.35, value_range=None, selection_coordinates_path=None):
+def initial_figure(
+    metrics_path,
+    spatial_model_dir,
+    *,
+    metric="taylor",
+    title=None,
+    max_angle=65.0,
+    exponent=0.35,
+    value_range=None,
+    selection_coordinates_path=None,
+):
     """Initial values and positions; optionally match visible node IDs of a current export."""
     if metric in {"axis_angle", "angle", "ipf_nd"}:
         from src.dashboard.initial_orientation import orientation_color_figure
-        return orientation_color_figure(metrics_path, spatial_model_dir, metric=metric,
-                                        title=title, max_angle=max_angle, exponent=exponent)
+
+        return orientation_color_figure(
+            metrics_path,
+            spatial_model_dir,
+            metric=metric,
+            title=title,
+            max_angle=max_angle,
+            exponent=exponent,
+        )
     column, default_title, unit, limits = INITIAL_METRICS[metric]
     limits = value_range if value_range is not None else limits
     with Path(metrics_path).open(newline="", encoding="utf-8") as source:
@@ -364,26 +441,77 @@ def initial_figure(metrics_path, spatial_model_dir, *, metric="taylor", title=No
         by_part[part] = value if metric == "taylor" else np.rad2deg(value)
     if selection_coordinates_path is not None:
         _, parts, polygons, segments = deformed_surface(
-            spatial_model_dir, selection_coordinates_path, reference_geometry=True)
+            spatial_model_dir, selection_coordinates_path, reference_geometry=True
+        )
     else:
         _, parts, faces, boundaries, _ = surface_topology(spatial_model_dir)
-        nodes = np.loadtxt(Path(spatial_model_dir)/"nodes.csv", delimiter=",", skiprows=1, ndmin=2)
-        top = nodes[np.isclose(nodes[:,3], nodes[:,3].max())]
-        top = top[np.argsort(top[:,0])]
-        polygons = [top[np.asarray(face)-1,1:3] for face in faces]
-        segments = [top[np.array(edge)-1,1:3] for edge in boundaries]
-    missing = set(map(int,parts)) - by_part.keys()
+        nodes = np.loadtxt(
+            Path(spatial_model_dir) / "nodes.csv", delimiter=",", skiprows=1, ndmin=2
+        )
+        top = nodes[np.isclose(nodes[:, 3], nodes[:, 3].max())]
+        top = top[np.argsort(top[:, 0])]
+        polygons = [top[np.asarray(face) - 1, 1:3] for face in faces]
+        segments = [top[np.array(edge) - 1, 1:3] for edge in boundaries]
+    missing = set(map(int, parts)) - by_part.keys()
     if missing:
         raise ValueError(f"Initial metrics missing for {len(missing)} surface parts")
     values = np.array([by_part[int(part)] for part in parts])
-    figure, axis = plt.subplots(figsize=(5.2,4.8), constrained_layout=True)
-    collection = PolyCollection(polygons, array=values, cmap="viridis",
-                                norm=Normalize(*limits), edgecolors="none", antialiaseds=False)
+    if limits is None:
+        limits = _nonzero_range(float(values.min()), float(values.max()))
+    figure, axis = plt.subplots(figsize=(5.2, 4.8), constrained_layout=True)
+    collection = PolyCollection(
+        polygons,
+        array=values,
+        cmap="viridis",
+        norm=Normalize(*limits),
+        edgecolors="none",
+        antialiaseds=False,
+    )
     axis.add_collection(collection)
     _draw_boundaries(axis, segments)
-    axis.autoscale_view(); axis.margins(0); axis.set_aspect("equal", adjustable="box")
+    axis.autoscale_view()
+    axis.margins(0)
+    axis.set_aspect("equal", adjustable="box")
     axis.set(xlabel="x", ylabel="y", title=title or default_title)
     axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     figure.colorbar(collection, ax=axis, label=unit)
+    return apply_figure_style(figure)
+
+
+def slip_activity_figure(activity_path, spatial_model_dir, *, coordinates_path,
+                         value_range=None, title="Z-directed slip activity"):
+    """Map previously calculated per-element activity; no slip calculation here."""
+    import pandas as pd
+    frame = pd.read_csv(activity_path)
+    if not {"element_id", "z_slip_activity"}.issubset(frame.columns) or frame.element_id.duplicated().any():
+        raise ValueError("Expected unique element IDs and z_slip_activity")
+    activity = frame.set_index("element_id")
+    ids, _, polygons, segments = deformed_surface(spatial_model_dir, coordinates_path)
+    if not set(map(int, ids)).issubset(activity.index):
+        raise ValueError("Saved slip activity is missing displayed surface elements")
+    values = activity.loc[ids, "z_slip_activity"].to_numpy()
+    if not np.isfinite(values).all() or (values < 0).any():
+        raise ValueError("Saved slip activity must be finite and non-negative")
+    limits = value_range or (0.0, float(values.max()))
+    figure, axis = plt.subplots(figsize=(5.2, 4.8), constrained_layout=True)
+    collection = PolyCollection(
+        polygons,
+        array=values,
+        cmap="magma",
+        norm=Normalize(*_nonzero_range(*limits)),
+        edgecolors="none",
+        antialiaseds=False,
+    )
+    axis.add_collection(collection)
+    _draw_boundaries(axis, segments)
+    axis.autoscale_view()
+    axis.margins(0)
+    axis.set_aspect("equal", adjustable="box")
+    axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
+    axis.set_xlabel("x")
+    axis.set_ylabel("y")
+    axis.set_title(title)
+    figure.colorbar(collection, ax=axis, label=r"$A_z$")
     return apply_figure_style(figure)

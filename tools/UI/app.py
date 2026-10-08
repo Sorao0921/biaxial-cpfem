@@ -7,12 +7,17 @@ import streamlit as st
 
 from src.config.pipeline_paths import OUTPUTS_DIR, build_spatial_model_dir, build_pre_directories
 from src.crystal_plasticity.taylor_pipeline import ensure_record
+from src.crystal_plasticity.slip_activity_pipeline import ensure_activity
+from src.dashboard.export import combine_map_pngs, map_png_name, combined_png_name
 from src.dashboard.catalog import OutputRecord, available_values, filter_records, scan_outputs
 from src.dashboard.plots import (
     height_figure,
     initial_figure,
     orientation_figure,
     shear_figure,
+    slip_activity_figure,
+    shared_taylor_range,
+    uniform_initial_map,
 )
 from src.mapping.plot_style import (
     ACCUMULATED_SHEAR_STRAIN_RANGE,
@@ -36,7 +41,7 @@ def pick(label: str, values, key: str):
     return st.selectbox(label, values, key=key)
 
 
-def show_figures(figures: list[tuple[str, object]], columns: int) -> None:
+def show_figures(figures: list[tuple[str, object]], columns: int, *, filenames, combined_filename) -> None:
     downloads = []
     for start in range(0, len(figures), columns):
         row = st.columns(columns)
@@ -48,6 +53,16 @@ def show_figures(figures: list[tuple[str, object]], columns: int) -> None:
             downloads.append((label, buffer.getvalue()))
             plt.close(figure)
 
+    if downloads:
+        st.download_button(
+            "表示中の全マップを1枚のPNGで保存",
+            combine_map_pngs([data for _, data in downloads], columns),
+            file_name=combined_filename,
+            mime="image/png",
+            key="download-all-maps",
+            width="stretch",
+        )
+
     with st.expander("PNGを保存"):
         for start in range(0, len(downloads), columns):
             row = st.columns(columns)
@@ -56,7 +71,7 @@ def show_figures(figures: list[tuple[str, object]], columns: int) -> None:
                     st.download_button(
                         f"{label} のPNGを保存",
                         data,
-                        file_name=f"{label}.png".replace(" ", "_"),
+                        file_name=filenames[label],
                         mime="image/png",
                         key=f"download-{label}",
                         width="stretch",
@@ -90,21 +105,23 @@ with st.sidebar:
     st.header("表示設定")
     grid_columns = st.slider("1行のパネル数", 1, 4, 3)
     st.caption(f"カタログ登録: {len(records):,} マップ")
-    taylor_min = st.number_input("Taylor factor 色範囲：下限", value=1.5, step=.1)
-    taylor_max = st.number_input("Taylor factor 色範囲：上限", value=4.5, step=.1)
-    if taylor_max <= taylor_min:
-        st.error("上限は下限より大きくしてください。")
-        st.stop()
+    st.caption("Taylor factorの色範囲は表示値から自動調整し、state別とinitialで揃えます。")
     st.caption("Taylor factorは各stateの粒平均方位から算出。公称rho・等ひずみを仮定し、局所すべり量／塑性ひずみの実測比とは異なります。")
-TAYLOR_RANGE = (taylor_min, taylor_max)
 
 if mode == "パラメータを変えて同じ指標を比較":
-    metric_label = st.selectbox("表示指標", ["高さ", "GOS", "結晶粒回転", "Taylor factor（state別）"])
+    metric_label = st.selectbox("表示指標", ["高さ", "GOS", "結晶粒回転", "Taylor factor（state別）", "Z-directed slip activity"])
+    is_slip_activity = metric_label == "Z-directed slip activity"
     kind = "taylor" if metric_label == "Taylor factor（state別）" else ("height" if metric_label == "高さ" else "orientation")
-    source_kind = "orientation" if kind == "taylor" else kind
+    source_kind = "height" if is_slip_activity else ("orientation" if kind == "taylor" else kind)
     candidates = [r for r in filter_records(records, kind=source_kind)
-                  if r.case_key in height_by_case
+                  if (not is_slip_activity or r.state > 1)
+                  and r.case_key in height_by_case
                   and (build_spatial_model_dir(r.seed)/"nodes.csv").exists()]
+    if not is_slip_activity and kind != "taylor":
+        initial_metric = {"高さ": "height", "GOS": "gos", "結晶粒回転": "rotation"}[metric_label]
+        candidates = [r for r in candidates if r.state != 1 or not uniform_initial_map(
+            r.path, build_spatial_model_dir(r.seed), height_by_case[r.case_key].path,
+            metric=initial_metric)]
     varying = st.selectbox("横並びで変化させる条件", ["sd", "rho", "state"])
 
     controls = st.columns(4)
@@ -142,7 +159,30 @@ if mode == "パラメータを変えて同じ指標を比較":
         if recalculate or recalculate_all:
             st.success("Taylor factorを計算・保存しました。")
         st.caption("未計算、または元の方位データが更新されたstateは自動計算します。")
-    if kind == "height":
+    if is_slip_activity:
+        refresh = st.button("表示中のz方向すべり活動を計算・更新", key="slip-activity-sweep")
+        figures = []
+        with st.spinner("z方向すべり活動の計算結果を確認しています…"):
+            for record in selected:
+                try:
+                    path = ensure_activity(record, OUTPUTS_DIR, force=refresh)
+                    figure = slip_activity_figure(
+                        path, build_spatial_model_dir(record.seed),
+                        coordinates_path=height_by_case[record.case_key].path,
+                        title=f"Z-directed slip activity\n{varying} = {getattr(record, varying):g}")
+                    figures.append((f"z_slip_activity_{varying}_{getattr(record, varying):g}", figure))
+                except (ValueError, OSError, KeyError) as error:
+                    st.warning(f"{varying} = {getattr(record, varying):g}: {error}")
+        if not figures:
+            st.warning("表示可能なz方向すべり活動の区間データがありません。")
+            st.stop()
+        # Use displayed element values only, including the same edge cropping.
+        upper = max(float(figure.axes[0].collections[0].get_array().max())
+                    for _, figure in figures)
+        shared_range = (0., upper if upper > 0 else 1e-12)
+        for _, figure in figures:
+            figure.axes[0].collections[0].set_clim(*shared_range)
+    elif kind == "height":
         shared_range = HEIGHT_RANGE
         figures = [
             (
@@ -158,7 +198,10 @@ if mode == "パラメータを変えて同じ指標を比較":
         ]
     else:
         metric = "taylor" if kind == "taylor" else ("gos" if metric_label == "GOS" else "rotation")
-        shared_range = TAYLOR_RANGE if metric == "taylor" else (GOS_RANGE if metric == "gos" else GRAIN_ROTATION_RANGE)
+        shared_range = shared_taylor_range([
+            (record.path, build_spatial_model_dir(record.seed), height_by_case[record.case_key].path)
+            for record in selected
+        ]) if metric == "taylor" else (GOS_RANGE if metric == "gos" else GRAIN_ROTATION_RANGE)
         figures = [
             (
                 f"{metric}_{varying}_{getattr(record, varying)}",
@@ -167,14 +210,24 @@ if mode == "パラメータを変えて同じ指標を比較":
                     build_spatial_model_dir(record.seed),
                     coordinates_path=height_by_case[record.case_key].path,
                     metric=metric,
-                    title=f"{dict(gos='GOS', rotation='Grain rotation', taylor='Taylor factor')[metric]} | {varying} = {getattr(record, varying):g}",
+                    title=f"{dict(gos='GOS', rotation='Grain rotation', taylor='Taylor factor')[metric]}\n{varying} = {getattr(record, varying):g}",
                     value_range=shared_range,
                 ),
             )
             for record in selected
         ]
     st.caption(f"共通表示範囲: {shared_range[0]:.6g} ～ {shared_range[1]:.6g}")
-    show_figures(figures, grid_columns)
+    filenames = {}
+    displayed_records = []
+    for label, _ in figures:
+        record = next(r for r in selected
+                      if label.endswith(f"_{varying}_{getattr(r, varying):g}"))
+        metric_name = label.rsplit(f"_{varying}_", 1)[0]
+        filenames[label] = map_png_name(metric_name, record)
+        displayed_records.append(record)
+    show_figures(figures, grid_columns, filenames=filenames,
+                 combined_filename=combined_png_name(f"{metric_name}_comparison", displayed_records))
+
 
 else:
     # Only cases present in every displayed dataset are selectable.
@@ -247,10 +300,6 @@ else:
     recalculate = st.button("このstateのTaylor factorを計算・更新", key="taylor-current")
     with st.spinner("このstateのTaylor factorを確認しています…"):
         taylor_record = ensure_record(orientation_record, OUTPUTS_DIR, force=recalculate)
-    figures.append(("taylor_factor_state", orientation_figure(
-        taylor_record.path, build_spatial_model_dir(height_record.seed),
-        coordinates_path=height_record.path, metric="taylor",
-        title="Taylor factor", value_range=TAYLOR_RANGE)))
     initial_path = (build_pre_directories(height_record.seed).orientation_csv_dir /
                     f"{height_record.texture}_sigma{height_record.sd}_seed{height_record.seed}.csv")
     initial_source = OutputRecord("initial", height_record.rho, height_record.seed,
@@ -258,11 +307,43 @@ else:
                                   initial_path, "initial_input")
     with st.spinner("初期Taylor factorを確認しています…"):
         initial_record = ensure_record(initial_source, OUTPUTS_DIR)
+    taylor_range = shared_taylor_range([
+        (taylor_record.path, build_spatial_model_dir(height_record.seed), height_record.path),
+        (initial_record.path, build_spatial_model_dir(height_record.seed), height_record.path),
+    ])
+    figures.append(("taylor_factor_state", orientation_figure(
+        taylor_record.path, build_spatial_model_dir(height_record.seed),
+        coordinates_path=height_record.path, metric="taylor",
+        title="Taylor factor", value_range=taylor_range)))
     figures.append(("taylor_factor_initial_state01", initial_figure(
         initial_record.path, build_spatial_model_dir(height_record.seed), metric="taylor",
-        title="Initial Taylor factor", value_range=TAYLOR_RANGE,
+        title="Initial Taylor factor", value_range=taylor_range,
         selection_coordinates_path=height_record.path)))
     st.caption("7枚目は初期Taylor factorです。選択stateにかかわらず変形前の値・形状・粒界を表示し、6枚目と同じ要素範囲で端部を除去し、色範囲も揃えています。")
     if recalculate:
         st.success(f"state{height_record.state:02d}のTaylor factorを更新しました。")
-    show_figures(figures, grid_columns)
+    st.caption("8枚目：12系の累積せん断ひずみの直前stateとの差分を、eps_equivalent.csvのマクロ相当ひずみ増分で割ってz方向へ射影します。計算済みの値を表示表面のelementごとに描画します。")
+    activity_upper = st.number_input("z方向活動の色範囲上限（0で自動）", min_value=0.0, value=0.0, format="%.6g")
+    refresh_activity = st.button("このstateのz方向すべり活動を計算・更新", key="slip-activity-current")
+    try:
+        with st.spinner("z方向すべり活動の計算結果を確認しています…"):
+            activity_path = ensure_activity(height_record, OUTPUTS_DIR, force=refresh_activity)
+        activity_figure = slip_activity_figure(
+            activity_path, build_spatial_model_dir(height_record.seed),
+            coordinates_path=height_record.path,
+            value_range=(0., activity_upper) if activity_upper > 0 else None,
+            title="Z-directed slip activity")
+    except (ValueError, OSError, KeyError) as error:
+        st.warning(f"8枚目: {error}")
+        activity_figure, activity_axis = plt.subplots(figsize=(5.2, 4.8))
+        activity_axis.set_axis_off()
+        activity_axis.set_title("Z-directed slip activity")
+        activity_axis.text(.5, .5, "Required interval data unavailable", ha="center", va="center")
+    figures.append(("z_slip_activity", activity_figure))
+    filenames = {
+        label: map_png_name("taylor_factor_initial" if label == "taylor_factor_initial_state01" else label,
+                            height_record, initial=label == "taylor_factor_initial_state01")
+        for label, _ in figures
+    }
+    show_figures(figures, grid_columns, filenames=filenames,
+                 combined_filename=combined_png_name("all_maps", [height_record]))

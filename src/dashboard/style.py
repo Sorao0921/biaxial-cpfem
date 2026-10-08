@@ -10,7 +10,8 @@ def apply_figure_style(figure):
         for location in ("left", "center", "right"):
             title = axis.get_title(loc=location)
             if title:
-                axis.set_title(title, loc=location, fontsize=TITLE_SIZE)
+                axis.set_title(title.replace(" | ", "\n"), loc=location,
+                               fontsize=TITLE_SIZE, pad=18, linespacing=1.2)
         axis.tick_params(axis="both", which="both", labelsize=TICK_SIZE)
         for dimension in (axis.xaxis, axis.yaxis):
             dimension.label.set_fontsize(LABEL_SIZE)

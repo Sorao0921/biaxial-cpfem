@@ -105,3 +105,14 @@ def test_slip_concentration_averages_systems_before_ratio():
     slips[0, 0] = np.nan
     with pytest.raises(ValueError, match="finite"):
         plots.grain_slip_concentration([7, 7, 8, 9], slips)
+
+
+def test_shared_taylor_range_uses_visible_values_across_initial_and_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(plots, "deformed_surface", lambda *args:
+                        (np.array([1,2]), np.array([7,8]), [], []))
+    initial = tmp_path/'initial.csv'
+    state = tmp_path/'state.csv'
+    initial.write_text('part_id,taylor_factor\n7,2.8\n8,3.2\n9,99\n')
+    state.write_text('part_id,taylor_factor\n7,3.1\n8,3.9\n9,0\n')
+    assert plots.shared_taylor_range([(initial,tmp_path,'coords'),
+                                     (state,tmp_path,'coords')]) == (2.8,3.9)

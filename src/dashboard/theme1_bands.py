@@ -1,6 +1,6 @@
 """Seed-faceted band comparisons; fixed controls avoid pooling unlike cases.
 
-Chart contract: state uses equivalent-strain coordinates; other conditions use grouped bars. Both
+Chart contract: rho/texture comparisons use stacked bars in all five sd panels. Both
 absolute spectral energy and within-case shares retain individual seeds, with
 common axes. Blue/orange/olive plus markers/hatches distinguish the three bands.
 Source: graph_spectra/band_energies.csv; no reconstruction or new normalization.
@@ -20,6 +20,7 @@ import streamlit as st
 from src.config.pipeline_paths import THEME1_DIR, build_post_directories
 
 BANDS = ("low", "mid", "high")
+SD_LEVELS = (2, 4, 6, 8, 10)
 COLORS = ("#3575AB", "#CD8032", "#7B8740")
 FIELDS = ("texture", "rho", "sd", "state")
 
@@ -71,36 +72,42 @@ def attach_equivalent_strain(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def comparison_figure(data: pd.DataFrame, varying: str, metric: str, context: str):
+    """Stack all three bands for every even sd, retaining separate seed panels."""
+    if varying not in ("rho", "texture"):
+        raise ValueError("比較条件はrhoまたはtextureです。")
+    data = data.loc[data.sd.isin(SD_LEVELS)]
     seeds = sorted(data.seed.unique())
     levels = sorted(data[varying].unique())
-    fig, axes = plt.subplots(len(seeds), 1, figsize=(9, 3.1 * len(seeds) + 0.6),
-                             squeeze=False, sharex=True, sharey=True, layout="constrained")
     fraction = metric == "energy_fraction"
-    maximum = data[metric].max() * (100 if fraction else 1)
-    for ax, seed in zip(axes[:, 0], seeds):
-        subset = data.loc[data.seed.eq(seed)]
-        table = subset.pivot(index=varying, columns="band", values=metric).reindex(levels)
-        x = np.arange(len(levels))
-        if varying == "state":
-            x = subset.groupby("state").eps_eq.first().reindex(levels).to_numpy()
-        for i, (band, color, marker, hatch) in enumerate(zip(BANDS, COLORS, ("o", "s", "^"), ("", "//", ".."))):
-            y = table[band].to_numpy() * (100 if fraction else 1)
-            if varying == "state":
-                ax.plot(x, y, color=color, marker=marker, label=band, linewidth=1.5, markersize=4)
-            else:
-                ax.bar(x + (i - 1) * .25, y, width=.25, color=color, label=band,
+    scale = 100 if fraction else 1
+    maximum = data.groupby("case_id")[metric].sum().max() * scale
+    fig, axes = plt.subplots(len(seeds), len(SD_LEVELS),
+                             figsize=(21, 3.8 * len(seeds) + 1.5), squeeze=False,
+                             sharex=True, sharey=True, layout="constrained")
+    for row, seed in enumerate(seeds):
+        for column, sd in enumerate(SD_LEVELS):
+            ax = axes[row, column]
+            subset = data.loc[data.seed.eq(seed) & data.sd.eq(sd)]
+            table = subset.pivot(index=varying, columns="band", values=metric).reindex(index=levels, columns=BANDS)
+            x = np.arange(len(levels))
+            bottom = np.zeros(len(levels))
+            for band, color, hatch in zip(BANDS, COLORS, ("", "//", "..")):
+                y = table[band].to_numpy() * scale
+                ax.bar(x, y, bottom=bottom, width=.7, color=color, label=band,
                        hatch=hatch, edgecolor="#333333", linewidth=.4)
-                ax.set_xticks(x, [str(v) for v in levels])
-        ax.set_title(f"seed {seed} | {subset.case_id.nunique()} cases", loc="left", fontsize=11)
-        ax.set_ylabel("Band share (%)" if fraction else "Spectral energy")
-        ax.set_ylim(0, 100 if fraction else (maximum * 1.12 or 1))
-        ax.grid(axis="y", alpha=.2)
-        ax.set_axisbelow(True)
-        ax.spines[["top", "right"]].set_visible(False)
+                bottom += y
+            ax.set_xticks(x, [str(v) for v in levels], rotation=30 if varying == "texture" else 0)
+            ax.set_title(f"seed {seed} | sd={sd}", fontsize=11)
+            if column == 0:
+                ax.set_ylabel("Band share (%)" if fraction else "Spectral energy")
+            if row == len(seeds)-1:
+                ax.set_xlabel(varying)
+            ax.set_ylim(0, 100 if fraction else (maximum * 1.12 or 1))
+            ax.grid(axis="y", alpha=.2)
+            ax.set_axisbelow(True)
+            ax.spines[["top", "right"]].set_visible(False)
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncol=3, loc="outside lower center",
-               fontsize=TICK_SIZE, frameon=False)
-    axes[-1, 0].set_xlabel(r"Equivalent strain $\varepsilon_{eq}$ (–)" if varying == "state" else varying)
+    fig.legend(handles, labels, ncol=3, loc="outside lower center", fontsize=TICK_SIZE, frameon=False)
     label = "Band shares" if fraction else "Absolute band energies"
     fig.suptitle(f"Grain-mean height: {label}\n{context}", fontsize=12)
     return apply_figure_style(fig)
@@ -112,7 +119,7 @@ def _cached_data(path: str, modified: int) -> pd.DataFrame:
 
 
 def render_band_comparison() -> None:
-    st.header("Theme1：高さの帯域比較")
+    st.header("高さの帯域比較")
     path = THEME1_DIR / "graph_spectra" / "band_energies.csv"
     try:
         data = _cached_data(str(path), path.stat().st_mtime_ns)
@@ -122,12 +129,14 @@ def render_band_comparison() -> None:
     st.caption(f"保存済みデータ: {data.case_id.nunique():,} ケース / {data.seed.nunique()} seed ｜ {path.name}")
     st.caption("low＝低周波、mid＝中周波、high＝高周波。比率の分母は3帯域の合計です。"
                "粒内粗さと除外された先頭固有モードは含みません。絶対値は保存済みFourier係数の二乗和で、Sq²や面積平均ではありません。")
-    varying = st.selectbox("比較する条件", ["state", "texture", "rho", "sd"], key="bands-axis",
-                           format_func=lambda value: "相当ひずみ（state推移）" if value == "state" else value)
-    selected = data
+    varying = st.selectbox("比較する条件", ["rho", "texture"], key="bands-axis")
+    selected = data.loc[data.sd.isin(SD_LEVELS)].copy()
+    if selected.empty:
+        st.info("sd=2・4・6・8・10の帯域データがありません。")
+        return
     fixed = {}
-    controls = st.columns(3)
-    for column, field in zip(controls, [f for f in FIELDS if f != varying]):
+    controls = st.columns(2)
+    for column, field in zip(controls, [f for f in FIELDS if f not in (varying, "sd")]):
         with column:
             values = sorted(selected[field].unique())
             fixed[field] = st.selectbox(field, values, key=f"bands-{varying}-{field}")
@@ -138,22 +147,15 @@ def render_band_comparison() -> None:
     if selected.empty:
         st.info("表示するseedを選択してください。")
         return
-    if varying == "state":
-        try:
-            selected = attach_equivalent_strain(selected)
-        except (OSError, ValueError) as exc:
-            st.error(f"相当ひずみを読み込めません: {exc}")
-            return
-        st.caption("横軸は各rho・seedのeps_equivalent.csvのeps_eq（無次元）です。CSVの1行目をstate 1として対応付けます。")
     levels = sorted(selected[varying].unique())
-    expected_count = len(levels) * len(seeds)
+    expected_count = len(levels) * len(seeds) * len(SD_LEVELS)
     if selected.case_id.nunique() != expected_count:
-        st.warning("seed間で比較条件が揃っていません。欠けている条件は空白で表示します。")
+        st.warning("seed・sd間で比較条件が揃っていません。欠けている条件は空白で表示します。")
     zero_count = selected.groupby("case_id").energy.sum().eq(0).sum()
     if zero_count:
         st.info(f"3帯域の合計が0のケースが{zero_count}件あります。保存値に従い比率を0%で表示します。")
     context = ", ".join(f"{key}={value}" for key, value in fixed.items())
-    st.caption(f"固定条件: {context} ｜ 表示: {selected.case_id.nunique()} ケース。seed間の平均化は行いません。")
+    st.caption(f"固定条件: {context} ｜ 表示: {selected.case_id.nunique()} ケース。sd=2・4・6・8・10をすべて表示し、seed間の平均化は行いません。")
     downloads = []
     for metric, title in (("energy", "絶対エネルギー"), ("energy_fraction", "帯域比率")):
         st.subheader(title)
@@ -166,9 +168,9 @@ def render_band_comparison() -> None:
     with st.expander("PNGを保存"):
         for title, metric, data in downloads:
             st.download_button(f"{title}のPNGを保存", data,
-                               file_name=f"theme1_{varying}_{metric}.png", mime="image/png")
+                               file_name=f"height_bands_{varying}_{metric}.png", mime="image/png")
     with st.expander("表示データと出典"):
         st.caption(str(path))
         st.dataframe(selected, hide_index=True)
         st.download_button("表示データをCSVで保存", selected.to_csv(index=False).encode("utf-8-sig"),
-                           file_name=f"theme1_{varying}.csv", mime="text/csv")
+                           file_name=f"height_bands_{varying}.csv", mime="text/csv")

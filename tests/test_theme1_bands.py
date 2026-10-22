@@ -17,11 +17,30 @@ def sample():
     ])
 
 
-def test_missing_condition_remains_gap_and_scales_match():
-    figure = comparison_figure(sample(), 'state', 'energy_fraction', 'test')
-    np.testing.assert_allclose(figure.axes[0].lines[0].get_xdata(), [.01, .025, .05, .1])
-    assert np.isnan(figure.axes[1].lines[0].get_ydata()[1])
-    assert figure.axes[0].get_ylim() == figure.axes[1].get_ylim() == (0, 100)
+@pytest.mark.parametrize("varying", ["rho", "texture"])
+@pytest.mark.parametrize("metric,scale", [("energy", 1), ("energy_fraction", 10)])
+def test_stacked_bands_show_all_even_sd_with_missing_condition_gap(varying, metric, scale):
+    rows = []
+    for seed in (1, 2):
+        for sd in (2, 3, 4, 6, 8, 10):
+            for rho, texture in ((0, "brass"), (1, "cube")):
+                if seed == 2 and sd == 4 and rho == 1:
+                    continue
+                for band, value in (("low", 5), ("mid", 3), ("high", 2)):
+                    rows.append(dict(case_id=f"{seed}-{sd}-{rho}", seed=seed, sd=sd,
+                                     rho=rho, texture=texture, band=band,
+                                     energy=value, energy_fraction=value/10))
+    figure = comparison_figure(pd.DataFrame(rows), varying, metric, "test")
+    assert len(figure.axes) == 10
+    for ax in figure.axes:
+        patches = ax.patches
+        assert len(patches) == 6
+        # First bar stacks 5 + 3 + 2; vertical range uses their sum.
+        np.testing.assert_allclose([patches[i].get_y() for i in (0, 2, 4)], [0, 5*scale, 8*scale])
+        np.testing.assert_allclose([patches[i].get_height() for i in (0, 2, 4)], [5*scale, 3*scale, 2*scale])
+    assert np.isnan(figure.axes[6].patches[1].get_height())
+    assert figure.axes[0].get_ylim()[1] == pytest.approx(100 if metric == "energy_fraction" else 11.2)
+    assert "sd=3" not in " ".join(ax.get_title() for ax in figure.axes)
     plt.close(figure)
 
 

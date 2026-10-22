@@ -299,10 +299,6 @@ def classify(relative_path: Path) -> Classification:
         return Classification("outputs", "surface_height", "postprocess", "edge_dropped", "surface_height", 10)
     if "/coords/rawdata/" in f"/{value}":
         return Classification("outputs", "surface_height", "extracted", "raw", "surface_height", 20)
-    if "/coords/roughness/" in f"/{value}":
-        return Classification("outputs", "surface_roughness", "postprocess", "scalar_or_profile", "surface_roughness", 10)
-    if "/coords/lines/" in f"/{value}":
-        return Classification("outputs", "surface_profile", "postprocess", "line", "surface_profile", 10)
     if "/angles/grain_orientation_metrics/" in f"/{value}":
         return Classification("outputs", "grain_orientation_metrics", "postprocess", "grain_level", "orientation_metrics", 10)
     if "/angles/id_set/" in f"/{value}":

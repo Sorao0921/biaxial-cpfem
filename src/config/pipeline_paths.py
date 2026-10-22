@@ -43,8 +43,6 @@ class PostDirectories:
 
     raw_coords_dir: Path
     edge_dropped_dir: Path
-    lines_dir: Path
-    roughness_dir: Path
     raw_angle_dir: Path
     id_set_angle_dir: Path
     orientation_metrics_dir: Path
@@ -135,8 +133,6 @@ def build_post_directories(
     # Contents of coords_dir:
     raw_coords_dir = coords_dir / "rawdata"
     edge_dropped_dir = coords_dir / "edge_dropped"
-    lines_dir = coords_dir / "lines"
-    roughness_dir = coords_dir / "roughness"
     # Contents of angle_dir:
     raw_angle_dir = angle_dir / "rawdata"
     id_set_angle_dir = angle_dir / "id_set"
@@ -150,8 +146,6 @@ def build_post_directories(
         equivalent_strain_csv=post_model_dir / "eps_equivalent.csv",
         raw_coords_dir=raw_coords_dir,
         edge_dropped_dir=edge_dropped_dir,
-        lines_dir=lines_dir,
-        roughness_dir=roughness_dir,
         raw_angle_dir=raw_angle_dir,
         id_set_angle_dir=id_set_angle_dir,
         orientation_metrics_dir=orientation_metrics_dir,

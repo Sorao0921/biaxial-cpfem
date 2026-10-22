@@ -68,9 +68,7 @@ run/d3plot
 表面座標 / Euler角 / せん断ひずみ CSV
         |
         +-- tools/postprocess/post_main.py
-        |       +-- 端部除去
-        |       +-- L1/L2/L3 断面抽出
-        |       `-- Sa/Sq/Sz 算出
+        |       `-- 端部除去
         |
         `-- tools/postprocess/id_set.py
                 `-- element_id / part_id を付けた正規化 CSV
@@ -134,7 +132,7 @@ pipeline/
 │   ├── keywordset_seedN.k
 │   `-- merged_seedN/*.k
 ├── outputs/rho_*/rho_*_seedN/         # 後処理結果（実行時に作成）
-│   ├── coords/{rawdata,edge_dropped,lines,roughness}
+│   ├── coords/{rawdata,edge_dropped}
 │   ├── angles/{rawdata,id_set}
 │   `-- shear_strains/{rawdata,id_set}
 ├── src/                                # 再利用可能な処理本体
@@ -350,12 +348,12 @@ python extract_shear_strain.py
 
 ## 8. 後処理
 
-### 8.1 表面座標、粗さ、断面線
+### 8.1 表面座標の端部除去
 
-`tools/postprocess/post_main.py` 冒頭の `RHO` と `SEED` を設定して実行する。
+`--rho` と `--seed` で対象を指定する。端部除去のみは `--step edge`、ID付与のみは `--step ids`、両方は `--step all`。
 
 ```bash
-python tools/postprocess/post_main.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
 ```
 
 入力は次の構造を前提とする。
@@ -377,31 +375,7 @@ outputs/rho_X/rho_X_seedN/coords/rawdata/
 
 したがって、節点数や CSV の並びが前提と違う場合は `ValueError` になる。
 
-#### 断面線抽出
-
-中央 113 行のうち、0 始まりで次の水平行を抽出する。
-
-| ラベル | 行 index | 抽出点数 |
-|---|---:|---:|
-| L1 | 29 | 113 |
-| L2 | 57 | 113 |
-| L3 | 85 | 113 |
-
-出力先は `coords/lines/{case}/{L1|L2|L3}/`。
-
-#### 表面粗さ
-
-中央領域の座標へ最小二乗平面を当てはめる。
-
-```text
-z_plane = a*x + b*y + c
-residual = z - z_plane
-Sa = mean(abs(residual))
-Sq = sqrt(mean(residual^2))
-Sz = max(residual) - min(residual)
-```
-
-ケースごとに `coords/roughness/roughness_{texture}_sd{sd}_seed{seed}.csv` を生成する。列は `case,file,num_nodes,a,b,c,sa,sq,sz`。
+Sa/Sq/Sz の計算と L1〜L3 の断面線抽出は廃止し、`post_main.py --step edge` は端部除去のみ行う。既存出力は自動削除しない。
 
 #### 二次元マップの表示
 
@@ -411,10 +385,10 @@ Sz = max(residual) - min(residual)
 
 ### 8.2 element_id / part_id の付与
 
-`tools/postprocess/id_set.py` 冒頭の `RHO`, `SEED` を設定して実行する。
+ID付与は統合入口の `post_main --step ids` を使う。旧 `id_set.py` は同じ実装を呼ぶ互換入口。
 
 ```bash
-python tools/postprocess/id_set.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
 ```
 
 対象は `texture = brass/copper/cube/goss/s`、`sd = 2..10`、`state = 1..13`。
@@ -436,10 +410,9 @@ Euler 角:
 
 | ファイル | 主な役割 |
 |---|---|
-| `tools/postprocess/plot_for_textile.py` | Sa/Sq/Sz と L1/L2/L3 プロファイルを方位・state 別に描画。高さは mm から µm へ 1000 倍する |
 | `tools/postprocess/post_polefigure.m` | MTEX による極点図後処理 |
 | `tools/postprocess/grain_orientation_metrics.m` | MTEX による粒平均回転、GOS、IPF色の計算 |
-| `tools/postprocess/post_main.py` | 表面粗さとライン抽出の統括 |
+| `tools/postprocess/post_main.py` | 表面座標の端部除去 |
 | `tools/postprocess/id_set.py` | 要素/part 対応付きデータの生成 |
 
 MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スクリプトである。
@@ -476,9 +449,9 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 
 ### `src/extract_process`
 
-- `drop_edge.py`: 表面格子の外周除去。
-- `extract_lines.py`: L1/L2/L3 の水平プロファイル抽出。
-- `roughness.py`: 最小二乗基準面と Sa/Sq/Sz の計算。
+- `pipeline.py`: `--rho / --seed / --step edge|ids|all` の統合入口。
+- `coordinates.py` / `drop_edge.py`: 表面座標の端部除去。
+- `id_enrichment.py`: Euler角・せん断ひずみのID付与。
 - `eid_pid_mapping.py`: partset から element↔part 対応を構築し、DataFrame の付与・展開・集約を行う。
 
 ### `src/others`
@@ -497,7 +470,7 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 - `partset.py`, `make_partsmat.py`: 既存出力があると停止し、`--overwrite` 指定時だけ置換する。
 - `merge_all.py`: `OVERWRITE_EXISTING=False` では既存 keywordset/merged model をスキップする。
 - SuperDyna4 抽出: 最終 CSV が存在すれば state 単位でスキップする。
-- `post_main.py`: 非空の端部除去・ライン・粗さ出力を再利用する。
+- `post_main.py`: 非空の端部除去出力を再利用する。
 - `id_set.py`: `overwrite=False` で既存 state CSV をスキップする。
 
 途中で失敗した場合は、空ファイルまたは不完全ファイルが残っていないか確認してから再実行する。
@@ -509,9 +482,8 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 3. `make_partsmat.py` の材料定数とユーザー材料カード構造はコード内に固定されている。
 4. `id_set.py` は texture 5 種 × sd 9 種を走査し、ケースの生データフォルダが存在しない場合はその処理をスキップする。存在するフォルダ内で必要なファイルが不足している場合は例外で停止する。
 5. `partset.py` は生成 JSON を `partset_seedN.json` に書く一方、完了表示では `.k.json` を指すため表示名が実ファイルと一致しない。
-6. `SurfaceRoughnessAnalyzer.analyze_df()` の `num_nodes` は現状 `len(df) + 1` であり、実データ行数より 1 大きい値を記録する。
 7. Python パッケージは `uv.lock` で固定されるが、LS-DYNA、LS-PrePost、MATLAB、MTEX などの外部ソフトウェアは別途用意する必要がある。
-8. 自動テストに加え、解析条件の変更後は小規模ケースで行数、ID 対応、keyword の `*END`、粗さ値も確認する。
+8. 自動テストに加え、解析条件の変更後は小規模ケースで行数、ID 対応、keyword の `*END` も確認する。
 
 ## 13. 最短の実行順序
 
@@ -533,9 +505,8 @@ python tools/superdyna4/extract_angles.py
 python tools/superdyna4/extract_shear_strain.py
 
 # 6. 出力を outputs/ 以下へ配置後、RHO/SEED を編集して後処理
-python tools/postprocess/post_main.py
-python tools/postprocess/id_set.py
-python tools/postprocess/plot_for_textile.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
 ```
 
 実行前には、対象 `rho` / `seed` に対して `build_pre_directories()` と `build_post_directories()` が返すパスに必要ファイルがそろっていることを確認する。
@@ -628,8 +599,8 @@ This repository provides a pipeline for crystal-plasticity and biaxial-tension s
 3. Combine mesh, control, boundary, section, curve, and material definitions into analysis models.
 4. Run the models with LS-DYNA/SuperDyna4.
 5. Extract surface coordinates, Bunge Euler angles, and slip-system shear strains from LS-PrePost.
-6. Associate element IDs with part IDs and calculate surface roughness and line profiles.
-7. Prepare data for roughness plots, cross-sectional profiles, pole figures, and related visualizations.
+6. Drop surface edges and associate element IDs with part IDs.
+7. Prepare data for surface maps, pole figures, and related visualizations.
 
 Cases are identified by the following parameters:
 
@@ -671,9 +642,7 @@ run/d3plot
 surface-coordinate / Euler-angle / shear-strain CSV files
         |
         +-- tools/postprocess/post_main.py
-        |       +-- remove surface edges
-        |       +-- extract L1/L2/L3 profiles
-        |       `-- calculate Sa/Sq/Sz
+        |       `-- remove surface edges
         |
         `-- tools/postprocess/id_set.py
                 `-- normalize CSV files with element_id and part_id
@@ -737,7 +706,7 @@ pipeline/
 │   ├── keywordset_seedN.k
 │   `-- merged_seedN/*.k
 ├── outputs/rho_*/rho_*_seedN/         # post-processing results
-│   ├── coords/{rawdata,edge_dropped,lines,roughness}
+│   ├── coords/{rawdata,edge_dropped}
 │   ├── angles/{rawdata,id_set}
 │   `-- shear_strains/{rawdata,id_set}
 ├── src/                                # reusable implementation
@@ -914,12 +883,12 @@ After extraction, place CSV files in the applicable `outputs/.../coords/rawdata`
 
 ## 8. Post-processing
 
-### 8.1 Coordinates, Roughness, and Line Profiles
+### 8.1 Surface Coordinate Edge Removal
 
-Set `RHO` and `SEED` at the beginning of `tools/postprocess/post_main.py`, then run:
+Specify `--rho` and `--seed`. Choose `--step edge`, `ids`, or `all`.
 
 ```bash
-python tools/postprocess/post_main.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
 ```
 
 The expected input layout is:
@@ -939,38 +908,14 @@ outputs/rho_X/rho_X_seedN/coords/rawdata/
 
 A different node count or ordering raises `ValueError`.
 
-#### Line Extraction
-
-The following horizontal rows are extracted from the 113-row central region using zero-based indices:
-
-| Label | Row index | Points |
-|---|---:|---:|
-| L1 | 29 | 113 |
-| L2 | 57 | 113 |
-| L3 | 85 | 113 |
-
-Results are stored in `coords/lines/{case}/{L1|L2|L3}/`.
-
-#### Surface Roughness
-
-A least-squares reference plane is fitted to the central coordinates:
-
-```text
-z_plane = a*x + b*y + c
-residual = z - z_plane
-Sa = mean(abs(residual))
-Sq = sqrt(mean(residual^2))
-Sz = max(residual) - min(residual)
-```
-
-Each case produces `coords/roughness/roughness_{texture}_sd{sd}_seed{seed}.csv` with columns `case,file,num_nodes,a,b,c,sa,sq,sz`.
+Sa/Sq/Sz calculations and L1–L3 profile extraction have been retired. `post_main.py --step edge` only drops edge nodes; existing outputs are not deleted automatically.
 
 ### 8.2 Add Element and Part IDs
 
-Set `RHO` and `SEED` at the beginning of `tools/postprocess/id_set.py`, then run:
+Use the unified CLI with `--step ids`. The old `id_set.py` delegates to the same implementation:
 
 ```bash
-python tools/postprocess/id_set.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
 ```
 
 The script processes five textures, `sd=2..10`, and `state=1..13`.
@@ -992,10 +937,9 @@ The implementation validates required columns, numeric conversion, and duplicate
 
 | File | Purpose |
 |---|---|
-| `tools/postprocess/plot_for_textile.py` | Plots Sa/Sq/Sz and L1/L2/L3 profiles by orientation and state; converts height from mm to µm by multiplying by 1000 |
 | `tools/postprocess/post_polefigure.m` | Pole-figure processing with MTEX |
 | `tools/postprocess/grain_orientation_metrics.m` | Grain-average rotation and GOS calculations with MTEX |
-| `tools/postprocess/post_main.py` | Coordinates, roughness, and line-extraction orchestration |
+| `tools/postprocess/post_main.py` | Edge-drop processing of surface coordinates |
 | `tools/postprocess/id_set.py` | Element/part-normalized output generation |
 
 The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
@@ -1033,8 +977,6 @@ The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 ### `src/extract_process`
 
 - `drop_edge.py`: removes the outer portion of a surface grid.
-- `extract_lines.py`: extracts L1/L2/L3 horizontal profiles.
-- `roughness.py`: calculates the least-squares plane and Sa/Sq/Sz.
 - `eid_pid_mapping.py`: builds element-to-part mappings and supports DataFrame expansion, annotation, selection, and grouping.
 
 ### `src/others`
@@ -1053,7 +995,7 @@ The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 - `partset.py` and `make_partsmat.py` stop on existing output and replace it only with `--overwrite`.
 - `merge_all.py` skips existing keyword sets and merged models when `OVERWRITE_EXISTING=False`.
 - SuperDyna4 extraction skips individual states with existing final CSV files.
-- `post_main.py` reuses nonempty edge-dropped, line-profile, and roughness output.
+- `post_main.py` reuses nonempty edge-dropped output.
 - `id_set.py` skips existing state CSV files when `overwrite=False`.
 
 After a failed run, check for empty or incomplete files before restarting.
@@ -1065,9 +1007,8 @@ After a failed run, check for empty or incomplete files before restarting.
 3. Material constants and the user-material card structure are hard-coded in `make_partsmat.py`.
 4. `id_set.py` scans five textures by nine `sd` values and skips a case when its raw-data directory does not exist. It still stops if required files are missing inside an existing directory.
 5. `partset.py` writes `partset_seedN.json`, but its completion message reports a `.k.json` path.
-6. `SurfaceRoughnessAnalyzer.analyze_df()` currently records `num_nodes` as `len(df) + 1`, one greater than the actual row count.
 7. Python packages are pinned in `uv.lock`, but external software such as LS-DYNA, LS-PrePost, MATLAB, and MTEX must still be provided separately.
-8. In addition to the automated tests, verify row counts, ID mappings, the final keyword `*END`, and roughness values with a small case after changing analysis assumptions.
+8. In addition to the automated tests, verify row counts, ID mappings, and the final keyword `*END` with a small case after changing analysis assumptions.
 
 ## 13. Minimal Execution Sequence
 
@@ -1089,9 +1030,8 @@ python tools/superdyna4/extract_angles.py
 python tools/superdyna4/extract_shear_strain.py
 
 # 6. Place results under outputs/, set RHO/SEED, and post-process
-python tools/postprocess/post_main.py
-python tools/postprocess/id_set.py
-python tools/postprocess/plot_for_textile.py
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
 ```
 
 Before execution, confirm that all files required by `build_pre_directories()` and `build_post_directories()` exist for the selected `rho` and `seed`.

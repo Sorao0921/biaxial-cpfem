@@ -83,17 +83,17 @@ st.caption("高さ・GOS・結晶粒回転・累積せん断ひずみ・各state
 
 mode = st.radio(
     "比較方法",
-    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "Theme1 帯域比較", "谷形成起点の因子比較（state02）"],
+    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "高さの帯域比較", "谷形成起点の因子比較"],
     horizontal=True,
 )
 
-if mode == "谷形成起点の因子比較（state02）":
+if mode == "谷形成起点の因子比較":
     from src.dashboard.valley_onset import render_valley_onset
 
     render_valley_onset()
     st.stop()
 
-if mode == "Theme1 帯域比較":
+if mode == "高さの帯域比較":
     from src.dashboard.theme1_bands import render_band_comparison
 
     render_band_comparison()
@@ -129,11 +129,11 @@ if mode == "パラメータを変えて同じ指標を比較":
         candidates = [r for r in candidates if r.state != 1 or not uniform_initial_map(
             r.path, build_spatial_model_dir(r.seed), height_by_case[r.case_key].path,
             metric=initial_metric)]
-    varying = st.selectbox("横並びで変化させる条件", ["sd", "rho", "state"])
+    varying = st.selectbox("横並びで変化させる条件", ["state", "sd"])
 
     controls = st.columns(4)
     with controls[0]:
-        rho = None if varying == "rho" else pick("rho", available_values(candidates, "rho"), "sweep-rho")
+        rho = pick("rho", available_values(candidates, "rho"), "sweep-rho")
     base = filter_records(candidates, rho=rho)
     with controls[1]:
         seed = pick("seed", available_values(base, "seed"), "sweep-seed")

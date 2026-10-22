@@ -67,10 +67,8 @@ run/d3plot
         v
 表面座標 / Euler角 / せん断ひずみ CSV
         |
-        +-- tools/postprocess/post_main.py
-        |       `-- 端部除去
-        |
-        `-- tools/postprocess/id_set.py
+        `-- tools/postprocess/post_main.py --step all
+                +-- 端部除去
                 `-- element_id / part_id を付けた正規化 CSV
 ```
 
@@ -176,7 +174,7 @@ pipeline/
 phi1,Phi,phi2
 ```
 
-ヘッダー付き・ヘッダーなしの両方を `id_set.py` が受理する。`make_partsmat.py` は `numpy.loadtxt` を使うため、現実装では数値だけのヘッダーなし CSV を前提とする。
+ヘッダー付き・ヘッダーなしの両方を `post_main --step ids` が受理する。`make_partsmat.py` は `numpy.loadtxt` を使うため、現実装では数値だけのヘッダーなし CSV を前提とする。
 
 ファイル名は後段でケース名として使われる。推奨形式は次のいずれかである。
 
@@ -385,7 +383,7 @@ Sa/Sq/Sz の計算と L1〜L3 の断面線抽出は廃止し、`post_main.py --s
 
 ### 8.2 element_id / part_id の付与
 
-ID付与は統合入口の `post_main --step ids` を使う。旧 `id_set.py` は同じ実装を呼ぶ互換入口。
+ID付与は統合入口の `post_main --step ids` を使う。
 
 ```bash
 python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
@@ -412,8 +410,7 @@ Euler 角:
 |---|---|
 | `tools/postprocess/post_polefigure.m` | MTEX による極点図後処理 |
 | `tools/postprocess/grain_orientation_metrics.m` | MTEX による粒平均回転、GOS、IPF色の計算 |
-| `tools/postprocess/post_main.py` | 表面座標の端部除去 |
-| `tools/postprocess/id_set.py` | 要素/part 対応付きデータの生成 |
+| `tools/postprocess/post_main.py` | 表面座標の端部除去・Euler角とせん断ひずみへのID付与 |
 
 MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スクリプトである。
 
@@ -471,7 +468,7 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 - `merge_all.py`: `OVERWRITE_EXISTING=False` では既存 keywordset/merged model をスキップする。
 - SuperDyna4 抽出: 最終 CSV が存在すれば state 単位でスキップする。
 - `post_main.py`: 非空の端部除去出力を再利用する。
-- `id_set.py`: `overwrite=False` で既存 state CSV をスキップする。
+- `post_main --step ids`: `overwrite=False` で既存 state CSV をスキップする。
 
 途中で失敗した場合は、空ファイルまたは不完全ファイルが残っていないか確認してから再実行する。
 
@@ -480,7 +477,7 @@ MATLAB の `start_mtex.m` は同梱の MTEX を開始するための補助スク
 1. 実行条件の多くは CLI 引数ではなく、各スクリプト冒頭の `RHO`, `SEED` などの定数で指定する。
 2. 座標処理は 151×151 の行優先規則格子、および指定された表面節点 ID 範囲に強く依存する。
 3. `make_partsmat.py` の材料定数とユーザー材料カード構造はコード内に固定されている。
-4. `id_set.py` は texture 5 種 × sd 9 種を走査し、ケースの生データフォルダが存在しない場合はその処理をスキップする。存在するフォルダ内で必要なファイルが不足している場合は例外で停止する。
+4. `post_main --step ids` は texture 5 種 × sd 9 種を走査し、ケースの生データフォルダが存在しない場合はその処理をスキップする。存在するフォルダ内で必要なファイルが不足している場合は例外で停止する。
 5. `partset.py` は生成 JSON を `partset_seedN.json` に書く一方、完了表示では `.k.json` を指すため表示名が実ファイルと一致しない。
 7. Python パッケージは `uv.lock` で固定されるが、LS-DYNA、LS-PrePost、MATLAB、MTEX などの外部ソフトウェアは別途用意する必要がある。
 8. 自動テストに加え、解析条件の変更後は小規模ケースで行数、ID 対応、keyword の `*END` も確認する。
@@ -505,8 +502,7 @@ python tools/superdyna4/extract_angles.py
 python tools/superdyna4/extract_shear_strain.py
 
 # 6. 出力を outputs/ 以下へ配置後、RHO/SEED を編集して後処理
-python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
-python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step all
 ```
 
 実行前には、対象 `rho` / `seed` に対して `build_pre_directories()` と `build_post_directories()` が返すパスに必要ファイルがそろっていることを確認する。
@@ -641,10 +637,8 @@ run/d3plot
         v
 surface-coordinate / Euler-angle / shear-strain CSV files
         |
-        +-- tools/postprocess/post_main.py
-        |       `-- remove surface edges
-        |
-        `-- tools/postprocess/id_set.py
+        `-- tools/postprocess/post_main.py --step all
+                +-- remove surface edges
                 `-- normalize CSV files with element_id and part_id
 ```
 
@@ -750,7 +744,7 @@ The three columns are Bunge Euler angles:
 phi1,Phi,phi2
 ```
 
-`id_set.py` accepts both headered and headerless files. Because `make_partsmat.py` uses `numpy.loadtxt`, its current implementation expects a headerless, numeric-only CSV.
+`post_main --step ids` accepts both headered and headerless files. Because `make_partsmat.py` uses `numpy.loadtxt`, its current implementation expects a headerless, numeric-only CSV.
 
 Recommended filenames are:
 
@@ -912,7 +906,7 @@ Sa/Sq/Sz calculations and L1–L3 profile extraction have been retired. `post_ma
 
 ### 8.2 Add Element and Part IDs
 
-Use the unified CLI with `--step ids`. The old `id_set.py` delegates to the same implementation:
+Use the unified CLI with `--step ids`.
 
 ```bash
 python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
@@ -939,8 +933,7 @@ The implementation validates required columns, numeric conversion, and duplicate
 |---|---|
 | `tools/postprocess/post_polefigure.m` | Pole-figure processing with MTEX |
 | `tools/postprocess/grain_orientation_metrics.m` | Grain-average rotation and GOS calculations with MTEX |
-| `tools/postprocess/post_main.py` | Edge-drop processing of surface coordinates |
-| `tools/postprocess/id_set.py` | Element/part-normalized output generation |
+| `tools/postprocess/post_main.py` | Surface edge removal and Euler/shear ID enrichment |
 
 The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 
@@ -996,7 +989,7 @@ The MATLAB `start_mtex.m` scripts initialize the bundled MTEX installation.
 - `merge_all.py` skips existing keyword sets and merged models when `OVERWRITE_EXISTING=False`.
 - SuperDyna4 extraction skips individual states with existing final CSV files.
 - `post_main.py` reuses nonempty edge-dropped output.
-- `id_set.py` skips existing state CSV files when `overwrite=False`.
+- `post_main --step ids` skips existing state CSV files when `overwrite=False`.
 
 After a failed run, check for empty or incomplete files before restarting.
 
@@ -1005,7 +998,7 @@ After a failed run, check for empty or incomplete files before restarting.
 1. Many case parameters are constants such as `RHO` and `SEED` at the beginning of each script rather than CLI arguments.
 2. Coordinate processing depends on a row-major 151-by-151 grid and a fixed surface-node ID range.
 3. Material constants and the user-material card structure are hard-coded in `make_partsmat.py`.
-4. `id_set.py` scans five textures by nine `sd` values and skips a case when its raw-data directory does not exist. It still stops if required files are missing inside an existing directory.
+4. `post_main --step ids` scans five textures by nine `sd` values and skips a case when its raw-data directory does not exist. It still stops if required files are missing inside an existing directory.
 5. `partset.py` writes `partset_seedN.json`, but its completion message reports a `.k.json` path.
 7. Python packages are pinned in `uv.lock`, but external software such as LS-DYNA, LS-PrePost, MATLAB, and MTEX must still be provided separately.
 8. In addition to the automated tests, verify row counts, ID mappings, and the final keyword `*END` with a small case after changing analysis assumptions.
@@ -1030,8 +1023,7 @@ python tools/superdyna4/extract_angles.py
 python tools/superdyna4/extract_shear_strain.py
 
 # 6. Place results under outputs/, set RHO/SEED, and post-process
-python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step edge
-python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step ids
+python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step all
 ```
 
 Before execution, confirm that all files required by `build_pre_directories()` and `build_post_directories()` exist for the selected `rho` and `seed`.

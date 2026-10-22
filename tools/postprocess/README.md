@@ -13,7 +13,7 @@ Python はリポジトリルートから `python -m` で実行する。対象の
 
 `--step` の既定値は `edge`。既存の非空な端部除去結果と既存のID付与CSVは再利用する。
 実装は `src/extract_process/coordinates.py` と `id_enrichment.py`、引数処理は `pipeline.py` に集約。
-`id_set.py` は `--step ids` を既定にする互換CLIであり、同じ引数を指定する。
+後処理の入口は `post_main.py` に一本化した。
 旧コード内の RHO / SEED 定数の編集は不要。
 
 ID付与の後、MATLABで MTEX を初期化し、`grain_orientation_metrics.m` の `rho` / `seed` を設定して実行する。

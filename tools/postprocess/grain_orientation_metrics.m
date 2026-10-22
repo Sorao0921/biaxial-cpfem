@@ -1,7 +1,7 @@
 % Grain-average rotation and GOS calculation with MTEX.
 %
 % Run tools/postprocess/start_mtex.m before this script.  Input files are the
-% element-wise Bunge Euler CSVs produced by id_set.py (angles in radians).
+% element-wise Bunge Euler CSVs produced by post_main.py --step ids (angles in radians).
 % Each output row represents one grain/part.  All orientation operations use
 % MTEX orientation objects, so Euler-angle singularities and FCC crystal
 % symmetry are handled by MTEX rather than by subtracting Euler angles.

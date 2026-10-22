@@ -1,5 +1,17 @@
 # LS-DYNA 二軸引張・結晶塑性解析パイプライン仕様書
 
+## Git管理とローカルデータの整理
+
+Gitでは `src/`、`tools/`、`tests/`、説明資料、依存関係定義、外部ソース、共通メッシュと負荷・制御設定を管理する。
+`models/`、`outputs/`、`output/`、`database/` はローカル専用とし、`.gitignore` で除外する。`inputs/` は整理対象外とし、ファイルと従来のGit管理方針を維持する。生成JSONやSQLiteの `-wal` / `-shm` もコミットしない。
+
+- **保持する入力・元結果**: `inputs/orientation/`、`inputs/keywords/consts/initmesh.k`、`outputs/**/rawdata/`、解析機の `run/d3plot*`。元結果は外部での解析・抽出が必要なので、バックアップなしに削除しない。
+- **再生成できるもの**: `models/`、`database/` の集計・空間モデル・予測、`output/` の図表・PDF。必要な入力が揃っていることを確認してから整理する。計算時間がかかるものもある。
+- **通常削除できるキャッシュ**: `.mypy_cache/`、`.pytest_cache/`、プロジェクト内の `__pycache__/`。`.venv/` は実行環境のため通常は保持する。
+
+新しいcloneには解析データが含まれない。前処理には方位CSVを別途配置し、後処理・ダッシュボードには元の抽出結果を配置してカタログを再構築する（`docs/data_catalog.md` 参照）。
+Gitの追跡解除はローカルファイルの削除ではなく、過去のコミットに含まれるデータも消去しない。
+
 ## 0. English is below
 
 The English version follows the Japanese version in [English Specification](#english-specification).
@@ -529,6 +541,29 @@ python tools/postprocess/plot_for_textile.py
 実行前には、対象 `rho` / `seed` に対して `build_pre_directories()` と `build_post_directories()` が返すパスに必要ファイルがそろっていることを確認する。
 
 ## 14. Theme 1: 表面あれへの寄与重み
+
+### 初期組織からの教師なし表面高さ予測
+
+初期 Taylor 面外活動による凹凸候補と、隣接粒の M 差による粒間勾配候補を幾何学重みで結合し、表面高さを計算する。シミュレーションは評価だけに用いる。高さ変換・斜面の向きは事前に固定する追加仮定であり、Taylor 理論から一意に導かれる高さではない。
+
+```sh
+.venv/bin/python -m tools.theme1.predict_initial_height --strain 0.1
+```
+
+UI の「初期指標と表面高さ（state13）」に、初期指標＋共有粒界長／粒間距離の結合から高さを再構成する機能を追加。K・χ・Taylor P−・P_abs・M・事前固定ブレンドを切り替え、予測とstate13高さを比較できる。実測を使った学習・符号や係数・振幅の最適化は行わない。従来の初期指標の2段マップは折りたたみに保持。[高さ再構成の式と仮定](docs/neighbor_height_prediction.md) を参照。
+
+### 初期 Taylor 面外活動と state13 粗面化の順位予測
+
+初期方位・公称ひずみ比だけから Taylor 最適解の面外活動を計算し、state13 の粒単位粗面化応答と Spearman 相関で比較する。複数解の活動上下限と中点を保存し、M 単独との比較も行う。符号付き高さを直接予測するモデルではない。
+
+```sh
+.venv/bin/python -m tools.theme1.predict_initial_roughness
+.venv/bin/python -m tools.theme1.predict_initial_roughness --rho 0 --seed 1 --texture cube --sd 2 --plots
+```
+
+出力先は `database/theme1/initial_taylor_state13/`。解析範囲、複数解、節点ID、評価方法は [docs/initial_taylor_state13.md](docs/initial_taylor_state13.md) を参照。
+
+
 
 GOS、結晶粒回転、累積せん断ひずみと表面あれの関連度を、表面要素単位の標準化重回帰で推定する。
 
@@ -1060,3 +1095,11 @@ python tools/postprocess/plot_for_textile.py
 ```
 
 Before execution, confirm that all files required by `build_pre_directories()` and `build_post_directories()` exist for the selected `rho` and `seed`.
+
+### 初期Sachs全テンソルによる3次元平衡比較
+
+`python -m tools.theme1.compare_sachs_equilibrium --rho=-0.5 --seed 1 --sd 8` で、初期3次元メッシュ全体の固定固有ひずみ平衡解を従来K予測・state13高さと比較する。初期入力だけで両予測を保存した後に解析高さを評価する。UIにも3枚比較を追加。計算の位置付け・境界条件・小変形適用範囲の診断は `docs/sachs_equilibrium_prediction.md` を参照。
+
+### K・D/Q・3D平衡・CPFEMの比較
+
+`python -m tools.theme1.compare_initial_models --rho=-0.5 --seed 1 --sd 8` で、初期KのND差のみ、粒界面内のテンソル不適合Qを追加した指標モデル、3次元平衡、CPFEM参照を4枚で比較する。UIの初期予測メニューも同じ比較へ更新。Q=0のアブレーション、共通初期入力、参照へのデータ漏洩防止、実粒界法線を用いる実装の定義は `docs/initial_fourway_comparison.md` を参照。

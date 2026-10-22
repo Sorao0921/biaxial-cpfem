@@ -83,9 +83,15 @@ st.caption("高さ・GOS・結晶粒回転・累積せん断ひずみ・各state
 
 mode = st.radio(
     "比較方法",
-    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "Theme1 帯域比較"],
+    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "Theme1 帯域比較", "谷形成起点の因子比較（state02）"],
     horizontal=True,
 )
+
+if mode == "谷形成起点の因子比較（state02）":
+    from src.dashboard.valley_onset import render_valley_onset
+
+    render_valley_onset()
+    st.stop()
 
 if mode == "Theme1 帯域比較":
     from src.dashboard.theme1_bands import render_band_comparison
@@ -103,7 +109,8 @@ if not records:
 
 with st.sidebar:
     st.header("表示設定")
-    grid_columns = st.slider("1行のパネル数", 1, 4, 3)
+    grid_columns = 4
+    st.caption("マップは1行4枚で表示します。")
     st.caption(f"カタログ登録: {len(records):,} マップ")
     st.caption("Taylor factorの色範囲は表示値から自動調整し、state別とinitialで揃えます。")
     st.caption("Taylor factorは各stateの粒平均方位から算出。公称rho・等ひずみを仮定し、局所すべり量／塑性ひずみの実測比とは異なります。")

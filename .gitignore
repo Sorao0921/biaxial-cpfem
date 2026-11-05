@@ -4,7 +4,6 @@
 /outputs/
 /output/
 /database/
-/tests/
 
 # Solver decks (inputs rules below retain their previous behavior).
 *.k

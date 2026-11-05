@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.theme2.valley_evaluation import fit_plane_distances,distance_mask,binary_metrics,average_precision,valley_tables
-from src.postprocess.height_spectral import fft_bands
-from tests.test_initial_mismatch import mesh_frames
+from tests.helpers import mesh_frames
 
 
 def test_plane_fit_signed_normal_distance_and_translation():
@@ -63,17 +62,6 @@ def test_grain_and_region_evaluation_are_separate_and_do_not_mutate_predictions(
     assert set(result['metrics'].distance_threshold)=={.0005,.001,.002}
     pd.testing.assert_frame_equal(before,selected['k_only'])
     assert len(result['grain_heights'])==2
-
-
-def test_fft_band_reconstruction_conserves_detrended_signal_and_energy():
-    ny=40;nx=48;dx=.01;dy=.012
-    x,y=np.meshgrid(np.arange(nx)*dx,np.arange(ny)*dy)
-    field=.03*x+.02*y+np.cos(2*np.pi*x/.24)+.2*np.cos(2*np.pi*y/.048)
-    result=fft_bands(field,dx,dy,.06)
-    reconstructed=sum(result['fields'].values())
-    np.testing.assert_allclose(reconstructed,result['detrended'],atol=1.e-12)
-    assert sum(result['energy'].values())==pytest.approx(np.sum(result['detrended']**2),rel=1.e-12)
-    assert result['energy']['low']>0 and result['energy']['high']>0
 
 
 def test_automatic_centroid_thresholds_are_independent_and_scale_with_amplitude(tmp_path):

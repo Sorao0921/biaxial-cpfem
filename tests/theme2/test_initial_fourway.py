@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from src.theme2.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES
-from tests.test_initial_mismatch import mesh_frames
+from tests.helpers import mesh_frames
 
 
 def test_three_models_share_initial_load_and_reference_never_modifies_predictions(tmp_path):

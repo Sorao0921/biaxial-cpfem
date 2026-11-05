@@ -2,15 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from src.theme2.initial_mismatch import mismatch_indicators,predict_indicator_models,initial_interfaces
-from tests.test_sachs_equilibrium import mesh_frames as basic_mesh_frames
+from tests.helpers import mesh_frames
 
-def mesh_frames(*args):
-    nodes,elements=basic_mesh_frames(*args)
-    lookup=nodes.set_index("node_id")[["x","y","z"]]
-    conn=elements[[f"node_id_{i}" for i in range(1,9)]].to_numpy()
-    centers=lookup.loc[conn.ravel()].to_numpy().reshape(-1,8,3).mean(axis=1)
-    elements[["center_x","center_y","center_z"]]=centers
-    return nodes,elements
 from src.crystal_plasticity.stress_response import initial_grain_volumes
 
 

@@ -63,8 +63,8 @@ Mは低値が黄色、P・χ・Kは高値が黄色。これは抵抗／寄与の
 
 - `src/crystal_plasticity/stress_response.py`: 初期体積、Schmidテンソル、χ・K。
 - `src/dashboard/initial_prediction.py`: パラメータ操作、state1描画、Pの分位点色範囲。
-- `tests/test_initial_stress_response.py`: 直接速度則との一致、共通倍率の消去、Cube対称性、極小mでの安定性、体積重みと初期体積。
-- `tests/test_initial_prediction_maps.py`: 粒等重みの分位点と、値を変更しない飽和表示。
+- `tests/common/test_initial_stress_response.py`: 直接速度則との一致、共通倍率の消去、Cube対称性、極小mでの安定性、体積重みと初期体積。
+- `tests/theme2/test_initial_prediction_maps.py`: 粒等重みの分位点と、値を変更しない飽和表示。
 
 
 初期指標＋隣接結合による高さ再構成を追加し、上記6枚の指標比較は折りたたみ内へ移動した。主表示は予測・実測高さの2枚。詳細は `neighbor_height_prediction.md` を参照。

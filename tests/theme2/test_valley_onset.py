@@ -1,18 +1,11 @@
 import numpy as np
 import pandas as pd
 from src.theme2.valley_onset import predict_onset_models,evaluate_onset,MODEL_NAMES,reference_followup
-from tests.test_initial_mismatch import mesh_frames
-
-
-def inputs(tmp_path):
-    nodes,elements=mesh_frames(6,6,2)
-    nodes.to_csv(tmp_path/'nodes.csv',index=False);elements.to_csv(tmp_path/'elements.csv',index=False)
-    angle=tmp_path/'orientation.csv';np.savetxt(angle,[[.2,.4,.8],[1.1,.9,.3]],delimiter=',')
-    return angle
+from tests.helpers import onset_inputs
 
 
 def test_matched_ablations_and_initial_only_prediction(tmp_path):
-    angle=inputs(tmp_path)
+    angle=onset_inputs(tmp_path)
     p=predict_onset_models(angle,tmp_path,rho=-.5)
     assert tuple(p['models'])==MODEL_NAMES
     models=p['models']
@@ -39,7 +32,7 @@ def test_matched_ablations_and_initial_only_prediction(tmp_path):
 
 
 def test_q_zero_and_zero_surface_coupling_recover_matched_baselines(tmp_path):
-    angle=inputs(tmp_path)
+    angle=onset_inputs(tmp_path)
     p=predict_onset_models(angle,tmp_path,rho=0.,coupling=0.,q_coupling=0.)
     for name in ['d_q']:
         pd.testing.assert_frame_equal(p['models'][name]['coordinates'],p['models']['nd_contrast']['coordinates'])
@@ -51,6 +44,6 @@ def test_property_table_and_nonzero_transmission_rejected(tmp_path):
     table=property_table()
     assert len(table)==5
     assert table['Q拘束'].tolist()==['×','×','○','×','×']
-    angle=inputs(tmp_path)
+    angle=onset_inputs(tmp_path)
     with pytest.raises(ValueError,match='coupling'):
         predict_onset_models(angle,tmp_path,rho=0.,coupling=1.)

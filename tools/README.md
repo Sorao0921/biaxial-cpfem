@@ -41,4 +41,4 @@ python -m tools.theme2.compare_valley_onset --rho -0.5 --seed 1 --texture brass 
 python -m pytest -q
 ```
 
-予測評価の箱ひげ図テストは `tests/test_prediction_boxplots.py` に集約しています。旧 onset テストの precision・recall・F1 入力を除き、現行の起点捕捉率・予測面積率を検証します。物理計算、初期入力のみで予測する制約、データ対応、機構解析のテストは継続して使用します。
+予測評価の箱ひげ図テストは `tests/theme2/test_prediction_boxplots.py` に集約しています。旧 onset テストの precision・recall・F1 入力を除き、現行の起点捕捉率・予測面積率を検証します。物理計算、初期入力のみで予測する制約、データ対応、機構解析のテストは継続して使用します。

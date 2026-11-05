@@ -1,21 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
+from tests.helpers import mesh_frames
 from src.theme2.sachs_equilibrium import (SIGNS,brick_operators,elastic_matrix,engineering_strain,
     prepare_mesh,solve_eigenstrain,predict_equilibrium_from_initial)
-
-
-def mesh_frames(nx=3,ny=3,nz=2):
-    xyz=np.array([[x,y,z] for z in np.linspace(0,.2,nz+1) for y in np.linspace(0,1,ny+1) for x in np.linspace(0,1,nx+1)])
-    def node(x,y,z):return z*(ny+1)*(nx+1)+y*(nx+1)+x+1
-    records=[]
-    for z in range(nz):
-        for y in range(ny):
-            for x in range(nx):
-                conn=[node(x+int(a),y+int(b),z+int(c)) for a,b,c in (SIGNS+1)/2]
-                records.append({'element_id':len(records)+1,'part_id':1+(x>=nx//2),**dict(zip([f'node_id_{i}' for i in range(1,9)],conn))})
-    nodes=pd.DataFrame(xyz,columns=['x','y','z']);nodes.insert(0,'node_id',np.arange(1,len(nodes)+1))
-    return nodes,pd.DataFrame(records)
 
 
 def test_brick_affine_energy_and_rigid_modes():

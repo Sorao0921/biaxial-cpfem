@@ -5,7 +5,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from src.theme2.dq_origins import event_counts, predict_dq, track_dq
 from src.dashboard.dq_origins import history_figure
-from tests.test_valley_onset import inputs
+from tests.helpers import onset_inputs, surface_mesh as mesh
 
 
 def test_cumulative_events_exclude_repeat_and_keep_zero_states():
@@ -37,7 +37,7 @@ def test_no_origins_is_undefined_not_zero_capture():
 
 
 def test_unchanged_reference_has_no_new_origins_and_fixed_prediction(tmp_path):
-    orientation=inputs(tmp_path)
+    orientation=onset_inputs(tmp_path)
     prediction=predict_dq(orientation,tmp_path,-.5)
     height=prediction['coordinates'].copy()
     original=height.copy()
@@ -97,7 +97,6 @@ def test_initial_summary_uses_state02_even_when_later_rate_differs():
 
 
 def test_peak_evaluation_is_sign_symmetric_and_does_not_change_prediction(tmp_path):
-    from tests.test_valley_bottom import mesh
     from src.theme2.dq_origins import evaluate_peak_origins
     from src.theme2.valley_evaluation import valley_tables
     from src.theme2.valley_bottom import bottom_supported_tables
@@ -119,7 +118,6 @@ def test_peak_evaluation_is_sign_symmetric_and_does_not_change_prediction(tmp_pa
 
 def test_peak_history_is_symmetric_with_original_coordinates(tmp_path):
     from src.theme2.dq_origins import track_dq_peaks,track_dq
-    from tests.test_valley_bottom import mesh
     top=mesh(tmp_path,16,individual=True)
     top.z=.01+.002*np.exp(-((top.x-.5)**2+(top.y-.5)**2)/.02)
     prediction={'coordinates':top.copy(),'metadata':{}}

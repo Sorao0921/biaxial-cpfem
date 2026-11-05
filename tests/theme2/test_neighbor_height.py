@@ -73,12 +73,6 @@ def test_prediction_independent_of_grain_and_edge_order():
     np.testing.assert_allclose(first.set_index('part_id').predicted_height_from_bottom.sort_index(),second.set_index('part_id').predicted_height_from_bottom.sort_index())
 
 
-def test_m_sign_and_no_reference_height_in_solver():
-    result,_,_=solve(feature_weights={'m':1.},coupling=0.)
-    assert result.predicted_height_from_bottom.iloc[0]<result.predicted_height_from_bottom.iloc[-1]
-    assert result.predicted_height_from_bottom.min()>0
-
-
 @pytest.mark.parametrize('kwargs',[{'feature_weights':{}},{'feature_weights':{'chi':-1.}},{'coupling':-1.},{'strain':-1.}])
 def test_invalid_model_configuration(kwargs):
     with pytest.raises(ValueError):solve(**kwargs)
@@ -120,6 +114,9 @@ def test_cli_saves_prediction_before_opening_observed_height(tmp_path,monkeypatc
 def test_each_indicator_is_a_valid_independent_hypothesis(feature):
     result,_,_=solve(feature_weights={feature:1.})
     assert np.isfinite(result.predicted_height_from_bottom).all()
+    assert (result.predicted_height_from_bottom>0).all()
+    if feature=='m':
+        assert result.predicted_height_from_bottom.iloc[0]<result.predicted_height_from_bottom.iloc[-1]
     assert 'component_'+feature in result
     expected=grains()[{'k':'k','chi':'chi','pminus':'pminus_midpoint','pabs':'pabs_midpoint','m':'m_initial'}[feature]].to_numpy()
     if feature=='m':expected=-expected

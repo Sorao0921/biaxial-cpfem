@@ -1,3 +1,5 @@
+> 2026-10-08時点の研究提案を保存した履歴資料です。現行のテーマ分類・実装・評価仕様は [docsの案内](../README.md) を参照してください。FNO・IG等の記述は実装済みであることを意味しません。
+
 # 結晶粒間の相互作用を考慮したすべり活動の説明と表面高さ場の予測
 
 研究方針相談用レポート｜2026年10月8日
@@ -236,7 +238,7 @@ F2 は初期情報だけの予測性能として報告しない。F1 の訓練�
 ローカル根拠：
 
 - `src/crystal_plasticity/slip_activity.py`：q の区間活動と Az・Rz の計算。
-- `docs/taylor_factor.md`、`src/crystal_plasticity/taylor_factor.py`：等 CRSS Taylor 計算と ρ の定義。
+- `docs/postprocess/taylor_factor.md`、`src/crystal_plasticity/taylor_factor.py`：等 CRSS Taylor 計算と ρ の定義。
 - `tools/UI/README.md`：z 方向活動・座標表示・state の仕様。
 - `tools/theme1/Requirements_definition.md`：表面粒グラフ・空間スケール・独立 seed に関する既存設計。
 

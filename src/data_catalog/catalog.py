@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from src.config.case_selection import CATALOG_SD_LEVELS
 from src.config.pipeline_paths import ANALYSIS_DATABASE, PROJECT_ROOT
 
 ROOT = PROJECT_ROOT
@@ -346,6 +347,9 @@ def parse_case(relative_path: Path) -> CaseFields:
 def exclusion_reason(relative_path: Path) -> str | None:
     """Return why a file is intentionally omitted from the research catalog."""
 
+    case = CASE_RE.search(relative_path.as_posix())
+    if case and int(case.group("sd")) not in CATALOG_SD_LEVELS:
+        return "nonstandard_sd"
     normalized_parts = {part.lower() for part in relative_path.parts}
     if normalized_parts & EXCLUDED_PATH_PARTS:
         return "bundled_matlab_mtex"

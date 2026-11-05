@@ -97,7 +97,7 @@ def test_evaluation_does_not_modify_full_prediction():
 
 
 def test_cli_saves_prediction_before_opening_observed_height(tmp_path,monkeypatch):
-    from tools.theme1 import predict_neighbor_height as cli
+    from tools.theme2 import predict_neighbor_height as cli
     from src.dashboard.catalog import OutputRecord
     record=OutputRecord('height',-.5,1,'cube',8,13,tmp_path/'observed.csv','test')
     monkeypatch.setattr(cli,'scan_outputs',lambda *a:[record])

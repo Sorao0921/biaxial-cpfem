@@ -30,3 +30,14 @@ ID付与の後、MATLABで MTEX を初期化し、`grain_orientation_metrics.m` 
 
 Sa/Sq/Sz と L1〜L3 の計算・評価・専用グラフ作成は廃止済み。専用コードとパス設定を削除した。
 高さ座標・粒方位指標・せん断ひずみを使う Theme 1 / UI の解析は引き続き利用できる。
+
+## 高さ分布の帯域分析
+
+高さ分布を表す追加指標として、表面粒グラフ上の帯域分解を後処理に分類する。
+
+```bash
+.venv/bin/python -m tools.postprocess.analyze_graph_spectra --resume --skip-mode-coefficients
+```
+
+既存の結果を再利用するため、保存先の既定値は `database/theme1/graph_spectra` を維持する。
+tools 全体の分類は [tools/README.md](../README.md) を参照。

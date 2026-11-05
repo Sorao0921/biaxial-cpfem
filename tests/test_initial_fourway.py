@@ -25,7 +25,7 @@ def test_three_models_share_initial_load_and_reference_never_modifies_prediction
 
 
 def test_cli_saves_three_predictions_before_reading_cpfem(tmp_path,monkeypatch):
-    import tools.theme1.compare_initial_models as cli
+    import tools.theme2.compare_initial_models as cli
     events=[]
     coordinates=pd.DataFrame({'node_id':[1,2,3],'x':[0.,1.,0.],'y':[0.,0.,1.],'z':[.1,.2,.3]})
     eq_meta={'finite_geometry_valid':True,'relative_free_force_residual':1.e-10,'iterations':2,

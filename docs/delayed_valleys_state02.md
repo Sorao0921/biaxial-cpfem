@@ -28,7 +28,7 @@
 個別ケースを再計算する例：
 
 ```sh
-.venv/bin/python -m tools.theme1.validate_delayed_valleys --rho -0.5 --seed 1 --texture brass --sd 2
+.venv/bin/python -m tools.theme2.validate_delayed_valleys --rho -0.5 --seed 1 --texture brass --sd 2
 ```
 
 出力は`output/reports/delayed_valleys/`以下。`candidates.csv`は候補ごとの初出state、`observations.csv`は毎stateの対応・可視性、`origins.csv`は起点の出現分類と履歴距離、`lines.csv`は谷底線の新規連結成分、`states.csv`はstate集計を記録する。

@@ -52,13 +52,13 @@ M差から無次元の勾配を定め、距離を掛けて長さ次元の高さ�
 ## 実行
 
 ```sh
-.venv/bin/python -m tools.theme1.predict_initial_height
-.venv/bin/python -m tools.theme1.predict_initial_height --rho -0.5 --seed 1 --texture brass --sd 2
+.venv/bin/python -m tools.theme2.predict_initial_height
+.venv/bin/python -m tools.theme2.predict_initial_height --rho -0.5 --seed 1 --texture brass --sd 2
 ```
 
 state13 固定。`--strain` の既定は0.1で、結果ファイルから取得しない。「state13だから必ず0.1」とは仮定せず、負荷計画の指定値と整合することを確認する。ひずみは相当対数ひずみとして扱う。rho の変形比としての定義と解析の負荷条件も照合が必要。
 
-実装は `src/theme1/initial_height.py`、実行・評価は `tools/theme1/predict_initial_height.py`。
+実装は `src/theme1/initial_height.py`、実行・評価は `tools/theme2/predict_initial_height.py`。
 
 ## 出力と評価
 
@@ -89,9 +89,9 @@ UI はAz・P+・P−による3予測と実際の表面高さの4枚を正規化�
 実行：
 
 ```sh
-.venv/bin/python -m tools.theme1.compare_initial_height
+.venv/bin/python -m tools.theme2.compare_initial_height
 # 条件を絞る場合
-.venv/bin/python -m tools.theme1.compare_initial_height --rho -0.5 --seed 1 --texture cube --sd 8
+.venv/bin/python -m tools.theme2.compare_initial_height --rho -0.5 --seed 1 --texture cube --sd 8
 ```
 
 初期方位のTaylor最適解について、符号付き系すべり量は単位相当ひずみあたりとする。初期試料座標で `c_alpha = gamma_alpha*s_z_alpha*m_z_alpha`、`Pplus=sum(max(c,0))`、`Pminus=sum(max(-c,0))` を計算する。面法線の並びはTaylorソルバーと厳密に合わせ、UMATの系番号を流用しない。全最適基本解で各指標の最小・最大の中点を用いる（最適解集合上では系ごとのすべり符号が固定されるため、この指標は線形となる）。特定の実現すべり解を選んだ値ではなく、範囲の代表値である。

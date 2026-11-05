@@ -53,7 +53,7 @@ def reference_bottom_lines(height,model_dir,*,prominence_fraction=.01,blue_fract
     area=geometry.loc[valid].groupby('part_id').area.sum()
     diameter=float(np.median(2*np.sqrt(area/np.pi)))
     smooth=gaussian_filter(residual,.75,mode='reflect')
-    baseline=gaussian_filter(residual,(max(.75,diameter/(2*dy)),max(.75,diameter/(2*dx))),mode='reflect')
+    baseline=gaussian_filter(residual,(max(1.5,diameter/(2*dy)),max(1.5,diameter/(2*dx))),mode='reflect')
     contrast=baseline-smooth
     gy,gx=np.gradient(smooth,dy,dx);hyy,hyx=np.gradient(gy,dy,dx);hxy,hxx=np.gradient(gx,dy,dx)
     hessian=np.empty((*grid.shape,2,2));hessian[...,0,0]=hxx;hessian[...,1,1]=hyy
@@ -93,25 +93,61 @@ def reference_bottom_lines(height,model_dir,*,prominence_fraction=.01,blue_fract
             for pid in parts:support.append(dict(segment_id=sid,part_id=pid,length=length))
     columns=['segment_id','node_a','node_b','x_a','y_a','z_a','x_b','y_b','z_b','length','material_x_a','material_y_a','material_x_b','material_y_b']
     segments=pd.DataFrame(segments,columns=columns);support=pd.DataFrame(support,columns=['segment_id','part_id','length'])
-    grains=pd.DataFrame({'part_id':area.index})
+    grains=pd.DataFrame({'part_id':area.index,'surface_area':area.to_numpy()})
     lengths=support.groupby('part_id').length.sum() if len(support) else pd.Series(dtype=float)
     grains['bottom_line_length']=grains.part_id.map(lengths).fillna(0.)
     # Positive-length support, not a point touching a vertex.
     minimum_length=.5*min(dx,dy)
     grains['full_line_feature']=grains.bottom_line_length>=minimum_length
-    origins,origin_nodes=local_origins(segments,height_span=float(color_high-color_low),grain_diameter=diameter)
+    # Detect origins on the full 2D height field, independently of thinned lines.
+    # Use detrended, lightly smoothed heights for morphology; retain physical xyz
+    # in exported origins. All eight grid neighbors participate in prominence.
+    graph_edges=[]
+    for oy_,ox_ in [(0,1),(1,0),(1,1),(1,-1)]:
+        ya,xa=np.indices(grid.shape)
+        yb,xb=ya+oy_,xa+ox_
+        ok=(yb<len(ys))&(xb>=0)&(xb<len(xs))
+        ya,xa,yb,xb=ya[ok],xa[ok],yb[ok],xb[ok]
+        graph_edges.append(pd.DataFrame(dict(node_a=node_grid[ya,xa],node_b=node_grid[yb,xb],
+            x_a=xs[xa],y_a=ys[ya],z_a=smooth[ya,xa],
+            x_b=xs[xb],y_b=ys[yb],z_b=smooth[yb,xb],
+            length=np.full(len(ya),np.hypot(ox_*dx,oy_*dy)))))
+    # Local depression, rather than global display color, defines valley area.
+    valley_cutoff=max(numerical,.5*float(np.sqrt(np.mean(contrast**2))))
+    valley_mask=contrast>valley_cutoff
+    candidates=set(node_grid[valley_mask])
+    origins,origin_nodes=local_origins(pd.concat(graph_edges,ignore_index=True),
+        height_span=float(np.ptp(smooth)),grain_diameter=diameter,
+        candidate_nodes=candidates)
+    boundary=set(node_grid[0])|set(node_grid[-1])|set(node_grid[:,0])|set(node_grid[:,-1])
+    boundary_ids=set(origin_nodes.loc[origin_nodes.node_id.isin(boundary),'origin_id'])
+    boundary_origins=origins[origins.origin_id.isin(boundary_ids)].copy()
+    origins=origins[~origins.origin_id.isin(boundary_ids)].copy()
+    origin_nodes=origin_nodes[origin_nodes.origin_id.isin(origins.origin_id)].copy()
+    for frame in (origins,boundary_origins):
+        frame[['x','y','z']]=current.loc[frame.node_id,['x','y','z']].to_numpy()
+    node_parts={}
+    for face,pid in zip(faces[valid],geometry.loc[valid].part_id):
+        for node in face:node_parts.setdefault(int(node),set()).add(int(pid))
     origin_support=[]
-    for origin in origins.itertuples():
-        incident_segments=segments.loc[(segments.node_a==origin.node_id)|(segments.node_b==origin.node_id),'segment_id']
-        parts=set(support.loc[support.segment_id.isin(incident_segments),'part_id'].astype(int))
-        origin_support.extend(dict(origin_id=origin.origin_id,part_id=pid) for pid in sorted(parts))
+    for oid,members in origin_nodes.groupby('origin_id'):
+        parts=set().union(*(node_parts.get(int(n),set()) for n in members.node_id))
+        origin_support.extend(dict(origin_id=oid,part_id=pid) for pid in sorted(parts))
+    valley_nodes=set(node_grid[valley_mask])
+    face_fraction=np.array([sum(int(n) in valley_nodes for n in face)/4 for face in faces[valid]])
+    valley_area=geometry.loc[valid,['part_id','area']].copy()
+    valley_area['valley_area']=valley_area.area.to_numpy()*face_fraction
+    fractions=valley_area.groupby('part_id').valley_area.sum()/area
+    grains['valley_area_fraction']=grains.part_id.map(fractions).fillna(0.)
+    grains['valley_feature']=(grains.valley_area_fraction>=.1)|grains.full_line_feature
     origin_support=pd.DataFrame(origin_support,columns=['origin_id','part_id'])
     origin_counts=origin_support.groupby('part_id').origin_id.nunique() if len(origin_support) else pd.Series(dtype=int)
     grains['origin_count']=grains.part_id.map(origin_counts).fillna(0).astype(int)
     grains['reference_feature']=grains.origin_count>0
-    return dict(segments=segments,support=support,grains=grains,origins=origins,origin_nodes=origin_nodes,origin_support=origin_support,metadata=dict(
-        origin_rule='multiple local minima on each trough graph; topographic prominence >=5% of reference display height span; along-line separation >=0.5 initial median grain diameter; truncated endpoints excluded',
-        origin_counting='one event per local minimum; shared-boundary grains are alternative supports, never duplicate events; equal-height plateau represented by its central member node',
+    return dict(boundary_origins=boundary_origins,segments=segments,support=support,grains=grains,origins=origins,origin_nodes=origin_nodes,origin_support=origin_support,metadata=dict(
+        origin_rule='full 8-neighbor surface graph, detrended and smoothed; prominence >5% of smoothed height span; separation >=0.5 initial median grain diameter; boundary minima reported separately',
+        valley_rule='local depression >0.5 RMS; at least 10% exposed grain area or positive trough-line support',valley_cutoff=valley_cutoff,
+        origin_counting='one event per local minimum; incident surface faces at minimum plateau nodes define alternative supporting grains, never duplicate events',
         method='transverse local-minimum ridge, positive principal curvature and local depression; thinned on regular initial material grid',
         blue_color_fraction=blue_fraction,blue_height_cutoff=blue_cutoff,color_low=float(color_low),color_high=float(color_high),
         blue_rule=f'raw z below low + {blue_fraction:g}*(high-low), where low/high are own height-map 2/98 percentiles; not a node-selection percentile',
@@ -181,20 +217,30 @@ def bottom_supported_tables(legacy,cpfem,model_dir,*,prediction_floor_fraction=.
             total=ref['segments'].length.sum()
             stats['bottom_line_coverage']=float(ref['segments'].set_index('segment_id').reindex(selected_segments).length.sum()/total) if total else np.nan
             hit_origins=set(ref['origin_support'].query('part_id in @covered').origin_id) if len(ref['origin_support']) else set()
+            valley=reference.valley_feature.to_numpy(bool)
+            stats.update(origin_hit_grains=int((predicted&truth).sum()),valley_only_grains=int((predicted&~truth&valley).sum()),unsupported_fp_grains=int((predicted&~truth&~valley).sum()))
             stats.update(origin_count=len(ref['origins']),hit_origin_count=len(hit_origins),
                 origin_recall=len(hit_origins)/len(ref['origins']) if len(ref['origins']) else np.nan)
             origin_flags.append(pd.DataFrame(dict(model=name,threshold_factor=factor,origin_id=ref['origins'].origin_id.to_numpy(),captured=ref['origins'].origin_id.isin(hit_origins).to_numpy())))
+            areas=reference.surface_area.to_numpy(float)
+            eligible_area=float(areas[valid].sum())
+            coverage=float(areas[predicted].sum()/eligible_area) if eligible_area else np.nan
+            stats.update(predicted_area_fraction=coverage,
+                capture_per_area=stats['origin_recall']/coverage if coverage>0 else np.nan,
+                eligible_surface_area=eligible_area,predicted_surface_area=float(areas[predicted].sum()))
+            stats={k:v for k,v in stats.items() if k not in ('precision','recall','f1','iou')}
             rows.append(stats)
             flags.append(pd.DataFrame(dict(model=name,level='grain',feature='valley',threshold_factor=factor,item_id=reference.index,
-                reference_feature=truth,predicted_feature=predicted,eligible=valid,predicted_local_lowness=score,
+                reference_feature=truth,reference_valley=valley,predicted_feature=predicted,eligible=valid,predicted_local_lowness=score,
                 bottom_line_length=reference.bottom_line_length.to_numpy(),
-                outcome=np.select([~valid,truth&predicted,~truth&predicted,truth&~predicted],['EXCLUDED','TP','FP','FN'],default='TN'))))
+                outcome=np.select([~valid,truth&predicted,~truth&predicted&valley,~truth&predicted,truth&~predicted],['EXCLUDED','TP','VALLEY','FP','FN'],default='TN'))))
     return dict(metrics=pd.DataFrame(rows),flags=pd.concat(flags,ignore_index=True),thresholds=pd.DataFrame(thresholds),
-        local_lowness=local,origin_flags=pd.concat(origin_flags,ignore_index=True),origins=ref['origins'],origin_nodes=ref['origin_nodes'],origin_support=ref['origin_support'],bottom_lines=ref['segments'],bottom_line_support=ref['support'],reference_bottom_grains=ref['grains'],
-        metadata={**legacy['metadata'],'method_version':'local_valley_origins_v4','reference_definition':ref['metadata'],
+        boundary_origins=ref['boundary_origins'],local_lowness=local,origin_flags=pd.concat(origin_flags,ignore_index=True),origins=ref['origins'],origin_nodes=ref['origin_nodes'],origin_support=ref['origin_support'],bottom_lines=ref['segments'],bottom_line_support=ref['support'],reference_bottom_grains=ref['grains'],
+        metadata={**legacy['metadata'],'method_version':'surface_valley_origins_v6_capture_area','reference_definition':ref['metadata'],
             'prediction_definition':'positive depression below neighboring weighted plane; length/distance weights; detrended neighbor mean fallback for rank-deficient neighborhoods',
+            'capture_area_definition':'predicted initial surface area / eligible initial surface area; capture_per_area = origin capture fraction / area fraction; descriptive concentration, not statistical confidence or chance significance',
             'feature_definition':'reference: grains containing local deepest origin points; primary recall counts distinct origins once; grain confusion metrics are auxiliary',
             'plane':'global OLS plane retained for diagnostic outputs and detrending only, not an absolute valley cutoff',
             'grain_statistic':'current exposed surface area centroid; prediction uses neighboring-plane depression, reference uses line support',
             'prediction_floor_fraction':prediction_floor_fraction,'threshold_rule':'prediction: configured RMS local depression multiplier (default 0.5), times sensitivity .5/1/2; reference line threshold fixed across predictions',
-            'false_positive_meaning':'predicted low grain without measured local-origin support; may still lie on a valley flank'})
+            'false_positive_meaning':'map FP: predicted grain with neither origin nor valley support; diagnostic colors only, no classification scores'})

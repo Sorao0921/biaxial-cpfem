@@ -76,3 +76,9 @@ quality review.
 Large arrays remain in `outputs/`, while the catalog provides paths for local or
 external-GPU data loaders. This separation keeps the database small and avoids
 duplicating tens of gigabytes of simulation data.
+
+Catalog sd levels are restricted to 2, 4, 6, 8, 10. Other parsed sd values
+are excluded as `nonstandard_sd`, including initial orientation sigma files.
+The restriction applies to the dashboard catalog and future database scans.
+On 2026-10-28, existing excluded catalog entries were removed and the ready
+manifest regenerated; original analysis files were retained.

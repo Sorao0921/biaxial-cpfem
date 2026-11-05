@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-def local_origins(lines,*,height_span,grain_diameter,prominence_fraction=.05,separation_fraction=.5):
+def local_origins(lines,*,height_span,grain_diameter,prominence_fraction=.05,separation_fraction=.5,candidate_nodes=None):
     columns=['origin_id','node_id','x','y','z','prominence','graph_degree','plateau_nodes','component_id']
     member_columns=['origin_id','node_id']
     if lines.empty:return pd.DataFrame(columns=columns),pd.DataFrame(columns=member_columns)
@@ -60,6 +60,7 @@ def local_origins(lines,*,height_span,grain_diameter,prominence_fraction=.05,sep
         if strength<=max(tol,prominence_fraction*height_span):continue
         members=plateaus[i];center=np.mean([xyz[n][:2] for n in members],axis=0)
         representative=min(members,key=lambda n:(np.linalg.norm(xyz[n][:2]-center),n))
+        if candidate_nodes is not None and representative not in candidate_nodes:continue
         candidates.append((representative,i,strength))
     # Suppress near-duplicate minima only along the same connected trough.
     kept=[];blocked=set();separation=separation_fraction*grain_diameter

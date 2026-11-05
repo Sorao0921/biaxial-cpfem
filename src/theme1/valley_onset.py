@@ -13,7 +13,6 @@ from src.theme1.initial_mismatch import _geometry,scalar_height
 from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
 from src.theme1.neighbor_height import evaluate_coordinates
 from src.theme1.valley_evaluation import valley_tables
-from src.theme1.taylor_boundary import initial_taylor_boundaries,boundary_union
 from src.theme1.valley_bottom import bottom_supported_tables,reference_bottom_lines
 
 MODEL_NAMES=('self_nd','nd_contrast','d_q','equilibrium_diagonal','equilibrium')
@@ -81,16 +80,15 @@ def predict_onset_models(orientation_path,model_dir,*,rho,m=.05,strain=.01,heter
     models['equilibrium_diagonal']=predict_equilibrium_from_initial(orientation_path,model_dir,rho=rho,m=m,
         strain=strain,heterogeneity=heterogeneity,poisson=poisson,components='diagonal')
     models={name:models[name] for name in MODEL_NAMES}
-    configuration={**base['configuration'],'version':'valley_onset_v2_five_conditions','evaluation_state':2,
+    configuration={**base['configuration'],'version':'valley_onset_v3_no_delta_m','evaluation_state':2,
         'scope':'valley initiation locations, not subsequent expansion/merging',
         'strain_source':'a priori response scale; not obtained from CPFEM state02',
         'monotonicity_assumed':False,'random_baseline':False}
-    taylor=initial_taylor_boundaries(orientation_path,model_dir,rho)
-    return {**base,'models':models,'configuration':configuration,'taylor_boundary':taylor,
+    return {**base,'models':models,'configuration':configuration,
         'config_id':hashlib.sha256(json.dumps(configuration,sort_keys=True).encode()).hexdigest()[:12]}
 
 
-def evaluate_onset(prediction,cpfem,model_dir,*,prediction_threshold_rms=.5,taylor_boundary_rms=1.):
+def evaluate_onset(prediction,cpfem,model_dir,*,prediction_threshold_rms=.5):
     selected={name:evaluate_coordinates(model['coordinates'],cpfem)[0] for name,model in prediction['models'].items()}
     selected['cpfem']=cpfem.copy()
     result=valley_tables(selected,model_dir)
@@ -114,7 +112,6 @@ def evaluate_onset(prediction,cpfem,model_dir,*,prediction_threshold_rms=.5,tayl
             row.update({kind:int((outcome==kind).sum()) for kind in ['new_hit','lost_hit','new_false_alarm','removed_false_alarm']})
             metrics=result['metrics'].query("level=='grain' and feature=='valley'")
             metrics=metrics[np.isclose(metrics.threshold_factor,factor)].set_index('model')
-            row.update({f'delta_{metric}':metrics.loc[after,metric]-metrics.loc[before,metric] for metric in ['precision','recall','f1']})
             origin_flags=result['origin_flags']
             origin_flags=origin_flags[np.isclose(origin_flags.threshold_factor,factor)]
             oa=origin_flags[origin_flags.model==before].set_index('origin_id').captured
@@ -127,11 +124,6 @@ def evaluate_onset(prediction,cpfem,model_dir,*,prediction_threshold_rms=.5,tayl
                 transition=np.select([gained,lost],['new_hit','lost_hit'],default='unchanged'))))
             transitions.append(row)
     result.update(selected=selected,transitions=pd.DataFrame(transitions),transition_grains=pd.concat(details,ignore_index=True),transition_origins=pd.concat(origin_details,ignore_index=True))
-    boundary=prediction.get('taylor_boundary')
-    if boundary is None:
-        cfg=prediction['configuration'];boundary=initial_taylor_boundaries(cfg['orientation'],model_dir,cfg['rho'])
-    result.update(boundary_union(result,boundary,model_dir,multiplier=taylor_boundary_rms))
-    result['metadata']['taylor_union']=result['taylor_union_method']
     return result
 
 

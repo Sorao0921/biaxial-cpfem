@@ -41,7 +41,7 @@ ZIP・CLIにbottom_lines、bottom_line_support、reference_bottom_grains、local
 既存予測を再利用して全ケースを再評価する場合：
 
 ```
-.venv/bin/python -m tools.theme1.plot_onset_boxplots --reuse-predictions output/reports/valley_onset_state02_boxplots/case_data
+.venv/bin/python -m tools.theme2.plot_onset_boxplots --reuse-predictions output/reports/valley_onset_state02_boxplots/case_data
 ```
 
 5条件版の設定バージョン・初期入力のmtime・共通条件が一致する場合だけ予測座標を再利用し、参照を読む前に全5条件を読み込む。合わなければ初期情報から再計算する。旧箱ひげ図は新方式の結果ではない。

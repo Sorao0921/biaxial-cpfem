@@ -123,13 +123,13 @@ SachsのKは初期全粒の体積平均で規格化するが、今回の結合�
 
 ```sh
 # K、単軸応力β=0、m=0.05、結合lambda=1の例
-.venv/bin/python -m tools.theme1.predict_neighbor_height --rho -0.5 --seed 1 --sd 8
+.venv/bin/python -m tools.theme2.predict_neighbor_height --rho -0.5 --seed 1 --sd 8
 # 隣接結合なしの比較。先に決めた別仮説として保存する
-.venv/bin/python -m tools.theme1.predict_neighbor_height --rho -0.5 --seed 1 --sd 8 --coupling 0
+.venv/bin/python -m tools.theme2.predict_neighbor_height --rho -0.5 --seed 1 --sd 8 --coupling 0
 # 指標単独の切替
-.venv/bin/python -m tools.theme1.predict_neighbor_height --rho -0.5 --seed 1 --texture cube --sd 8 --source pminus
+.venv/bin/python -m tools.theme2.predict_neighbor_height --rho -0.5 --seed 1 --texture cube --sd 8 --source pminus
 # 初期指標の標準化を用いた事前固定ブレンド
-.venv/bin/python -m tools.theme1.predict_neighbor_height --rho -0.5 --seed 1 --texture cube --sd 8 --source blend
+.venv/bin/python -m tools.theme2.predict_neighbor_height --rho -0.5 --seed 1 --texture cube --sd 8 --source blend
 ```
 
 出力先は `database/theme1/neighbor_height_state13/{case}/{config_id}/`。条件ごとに別ディレクトリを作り、異なる仮説を上書きしない。初期ファイル版（mtime）、パス、設定をmodel.jsonに記録する。

@@ -68,7 +68,7 @@ K u = integral B.T C eps_p dV
 UIの「初期指標と表面高さ（state13）」で3次元平衡比較をオンにすると、従来K・3次元平衡・state13高さを横に表示。最初のメッシュ組立は数秒から十数秒程度。初期メッシュとnuが変わらなければ剛性・前処理を再利用する。入力ファイルの更新時はキャッシュを無効化する。
 
 ```
-python -m tools.theme1.compare_sachs_equilibrium --rho=-0.5 --seed 1 --sd 8
+python -m tools.theme2.compare_sachs_equilibrium --rho=-0.5 --seed 1 --sd 8
 ```
 
 この例は5組織を同じ条件で比較する。--texture brassで1組織。--m、--strain、--poisson、--heterogeneityを事前指定できる。既定値はm=0.05、strain=0.1、nu=0.3、eta=0.75。--heterogeneity 1で従来の全ばらつきへ戻せる。K側は既定lambda=1、面内配合0.5、低K抵抗あり。指定条件を解析高さに合わせて自動最適化しない。

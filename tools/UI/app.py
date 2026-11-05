@@ -5,6 +5,7 @@ import io
 import matplotlib.pyplot as plt
 import streamlit as st
 
+from src.config.case_selection import CATALOG_SD_LEVELS
 from src.config.pipeline_paths import OUTPUTS_DIR, build_spatial_model_dir, build_pre_directories
 from src.crystal_plasticity.taylor_pipeline import ensure_record
 from src.crystal_plasticity.slip_activity_pipeline import ensure_activity
@@ -31,7 +32,8 @@ st.set_page_config(page_title="Simulation Map Comparison", page_icon="◫", layo
 
 @st.cache_data(show_spinner="出力データを確認しています…")
 def load_catalog() -> list[OutputRecord]:
-    return [r for r in scan_outputs(OUTPUTS_DIR) if r.kind != "initial"]
+    return [r for r in scan_outputs(OUTPUTS_DIR)
+            if r.kind != "initial" and r.sd in CATALOG_SD_LEVELS]
 
 
 def pick(label: str, values, key: str):
@@ -83,9 +85,15 @@ st.caption("高さ・GOS・結晶粒回転・累積せん断ひずみ・各state
 
 mode = st.radio(
     "比較方法",
-    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "高さの帯域比較", "谷形成起点の因子比較"],
+    ["パラメータを変えて同じ指標を比較", "同じモデルで複数指標を比較", "高さの帯域比較", "谷形成起点の因子比較", "D＋Q：起点の追加捕捉"],
     horizontal=True,
 )
+
+if mode == "D＋Q：起点の追加捕捉":
+    from src.dashboard.dq_origins import render_dq_origins
+
+    render_dq_origins()
+    st.stop()
 
 if mode == "谷形成起点の因子比較":
     from src.dashboard.valley_onset import render_valley_onset

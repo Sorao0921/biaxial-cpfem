@@ -18,7 +18,7 @@ from src.dashboard.export import combine_map_pngs
 from src.theme1.contribution import _read_height
 from src.theme1.neighbor_height import predict_from_initial,evaluate_coordinates
 from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
-from tools.theme1.predict_neighbor_height import save_prediction
+from tools.theme2.predict_neighbor_height import save_prediction
 
 
 def save_equilibrium(prediction,directory):

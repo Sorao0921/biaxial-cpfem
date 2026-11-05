@@ -84,6 +84,7 @@ coverage.xml
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+*.pkl
 /docs/reports/*.html
 
 # Preserve the pre-cleanup ignore policy inside inputs/.

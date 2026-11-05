@@ -25,7 +25,7 @@ RMSの1倍を事前に統一した検出規則とする。同じ絶対距離や�
 ZIPにはmetrics、flags、raw node/grain heights、node/grain distances、planes、centroids（各場の現在面積重心・面積・符号付き距離）、thresholds（各場・評価単位の自動閾値）、method.jsonを保存する。planesのSqは節点距離RMSで、粒の検出閾値はthresholds内のgrain行を参照する。
 
 ```
-.venv/bin/python -m tools.theme1.evaluate_valleys
+.venv/bin/python -m tools.theme2.evaluate_valleys
 ```
 
 保存済み4者比較の各条件フォルダに `centroid_detection_evaluation/` を作り、山・谷の粒一致PNGを保存する。集計は `centroid_detection_summary.csv`。`--skip-maps`、`--case`、`--fft` も利用可能。旧順位法・共通絶対距離法の出力は上書きしない。互換用の `--distance-threshold` を明示した場合のみ旧共通距離に切り替わる。UIでは使用しない。
@@ -33,7 +33,7 @@ ZIPにはmetrics、flags、raw node/grain heights、node/grain distances、plane
 ## texture別箱ひげ図
 
 ```
-.venv/bin/python -m tools.theme1.plot_detection_boxplots
+.venv/bin/python -m tools.theme2.plot_detection_boxplots
 ```
 
 state13の全ケースで初期3モデルを計算し、粒重心の自動閾値1倍のPrecision・Recall・F1をtexture別に集計する。ひずみ比と山／谷を分け、K・D/Q・3Dを別パネルにし、各パネル内でPrecision・Recall・F1を色分けした箱ひげと全ケースの点を表示。CSVもモデル別に分け、3指標を同じ表の列にまとめる。箱の標本単位は1ケース（seed・sd）で、粒や閾値倍率を標本数に混ぜない。未定義を0に置換しない。出力は `output/reports/centroid_detection_boxplots/`。PNG・PDF・ケース別CSV・箱の統計CSV・条件別件数を保存し、トップレベルの成果物をZIPにまとめる。ケースキャッシュにより中断後も再開可能。`--plots-only` は集計済み全閾値CSVから図を再生成する。

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Literal
 
+from src.config.case_selection import CATALOG_SD_LEVELS
+
 MetricKind = Literal["height", "orientation", "shear", "initial", "taylor"]
 
 _CASE_RE = re.compile(
@@ -38,6 +40,8 @@ def _case_from_path(path: Path) -> tuple[float, int, str, int, int] | None:
     case_match = _CASE_RE.search(path.as_posix())
     state_matches = list(_STATE_RE.finditer(path.name))
     if rho_match is None or case_match is None or not state_matches:
+        return None
+    if int(case_match.group("sd")) not in CATALOG_SD_LEVELS:
         return None
     state = int(state_matches[-1].group("state"))
     return (

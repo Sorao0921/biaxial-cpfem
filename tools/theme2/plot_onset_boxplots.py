@@ -17,8 +17,8 @@ from src.theme1.valley_evaluation import valley_tables
 
 TEXTURES=('brass','copper','s','cube','goss')
 NAMES={name:LABELS[name] for name in MODEL_NAMES}
-COLORS={'origin_recall':'#377ca8','precision':'#d99730','recall':'#d99730','f1':'#a35e89'}
-METRICS={'origin_recall':'Origin recall','precision':'Grain precision (aux.)','f1':'Grain F1 (aux.)'}
+COLORS={'predicted_area_fraction':'#d99730','origin_recall':'#377ca8'}
+METRICS={'origin_recall':'Origin capture','predicted_area_fraction':'Predicted area fraction'}
 
 
 def draw_plots(data,root):
@@ -57,7 +57,7 @@ def draw_plots(data,root):
         handles=[plt.Line2D([],[],marker='s',linestyle='',color=COLORS[m],label=label) for m,label in METRICS.items()]
         fig.legend(handles=handles,loc='lower center',bbox_to_anchor=(.5,.045),ncol=3,frameon=False)
         fig.supxlabel('Texture | one point = one case (seed, orientation spread); whiskers = 1.5 IQR; undefined omitted',fontsize=10,y=.025)
-        stem=root/f'rho_{rho:g}_{feature}_precision_recall_f1'
+        stem=root/f'rho_{rho:g}_{feature}_capture_area'
         fig.savefig(Path(str(stem)+'.png'),dpi=200,facecolor='white')
         fig.savefig(Path(str(stem)+'.pdf'),facecolor='white');book.savefig(fig,facecolor='white');plt.close(fig)
         frame.to_csv(root/f'rho_{rho:g}_{feature}_case_metrics.csv',index=False,encoding='utf-8-sig')
@@ -116,7 +116,7 @@ def main(argv=None):
             case=f'rho_{r.rho:g}_{r.texture}_sd{r.sd}_seed{r.seed}_state02';target=cache/case;target.mkdir(exist_ok=True)
             try:
                 metrics_path=target/'metrics.csv'
-                if metrics_path.exists() and (target/'method.json').exists() and json.loads((target/'method.json').read_text()).get('method_version')=='local_valley_origins_v4' and json.loads((target/'configuration.json').read_text()).get('version')=='valley_onset_v2_five_conditions' and (target/'union_metrics.csv').exists():
+                if metrics_path.exists() and (target/'method.json').exists() and json.loads((target/'method.json').read_text()).get('method_version')=='surface_valley_origins_v6_capture_area' and json.loads((target/'configuration.json').read_text()).get('version')=='valley_onset_v3_no_delta_m':
                     rows=pd.read_csv(metrics_path)
                 else:
                     mesh=SPATIAL_MODELS_DIR/f'seed{r.seed}'
@@ -128,7 +128,7 @@ def main(argv=None):
                         cfg=json.loads((source/'configuration.json').read_text())
                         versions={'orientation':orientation.stat().st_mtime_ns,'nodes':(mesh/'nodes.csv').stat().st_mtime_ns,'elements':(mesh/'elements.csv').stat().st_mtime_ns}
                         expected=dict(rho=r.rho,m=.05,strain=.01,heterogeneity=.75,surface_coupling=0.,q_coupling=1.,poisson=.3)
-                        if cfg.get('version')=='valley_onset_v2_five_conditions' and cfg.get('input_versions')==versions and all(cfg.get(k)==v for k,v in expected.items()):
+                        if cfg.get('version')=='valley_onset_v3_no_delta_m' and cfg.get('input_versions')==versions and all(cfg.get(k)==v for k,v in expected.items()):
                             import hashlib
                             models={name:dict(coordinates=pd.read_csv(source/f'{name}_coordinates.csv'),metadata=json.loads((source/f'{name}_model.json').read_text())) for name in MODEL_NAMES}
                             prediction=dict(models=models,configuration=cfg,config_id=hashlib.sha256(json.dumps(cfg,sort_keys=True).encode()).hexdigest()[:12])
@@ -139,7 +139,7 @@ def main(argv=None):
                         prediction['models'][name]['coordinates'].to_csv(target/f'{name}_coordinates.csv',index=False)
                         (target/f'{name}_model.json').write_text(json.dumps(prediction['models'][name]['metadata'],indent=2)+'\n')
                     result=evaluate_onset(prediction,_read_height(r.path),mesh)
-                    for key in ['transitions','transition_grains','transition_origins','bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags','taylor_factors','taylor_boundary_segments','taylor_boundaries','taylor_origin_boundary','taylor_boundary_metrics','union_metrics','union_origin_flags']:result[key].to_csv(target/(key+'.csv'),index=False)
+                    for key in ['transitions','transition_grains','transition_origins','bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags']:result[key].to_csv(target/(key+'.csv'),index=False)
                     result['centroids'].to_csv(target/'centroids.csv',index=False)
                     result['thresholds'].to_csv(target/'thresholds.csv',index=False)
                     result['planes'].to_csv(target/'planes.csv',index=False)
@@ -166,7 +166,7 @@ def main(argv=None):
     data['state']=2
     if data.duplicated(['case_id','model','feature']).any():raise ValueError('Duplicate case metrics')
     data.to_csv(root/'case_metrics.csv',index=False,encoding='utf-8-sig')
-    scores=data[['case_id','state','rho','texture','seed','sd','model','origin_count','hit_origin_count','origin_recall','precision','recall','f1']].copy()
+    scores=data[['case_id','state','rho','texture','seed','sd','model','origin_count','hit_origin_count','origin_recall','predicted_area_fraction','capture_per_area']].copy()
     scores.to_csv(root/'scores.csv',index=False,encoding='utf-8-sig')
     for model in MODEL_NAMES:
         scores[scores.model==model].to_csv(root/f'{model}_scores.csv',index=False,encoding='utf-8-sig')
@@ -177,17 +177,12 @@ def main(argv=None):
         wide=summary[summary.model==model].pivot(index=['rho','feature','texture'],columns='metric',values=['n_cases','n_valid','n_undefined','median','q1','q3','minimum','maximum'])
         wide.columns=[f'{metric}_{statistic}' for statistic,metric in wide.columns]
         wide.reset_index().to_csv(root/f'{model}_boxplot_statistics.csv',index=False,encoding='utf-8-sig')
-    union_rows=[]
-    for directory in sorted(cache.iterdir()):
-        path=directory/'union_metrics.csv'
-        if path.exists():union_rows.append(pd.read_csv(path).assign(case_id=directory.name))
-    if union_rows:pd.concat(union_rows,ignore_index=True).to_csv(root/'union_metrics.csv',index=False,encoding='utf-8-sig')
     coverage=data[['rho','texture','case_id']].drop_duplicates().groupby(['rho','texture']).size().rename('cases').reset_index()
     coverage.to_csv(root/'coverage.csv',index=False,encoding='utf-8-sig')
     (root/'README.md').write_text(f'''# state02の谷粒検出精度：texture別箱ひげ図
 
 対象：state02の{data.case_id.nunique()}ケース。5条件（自粒ND、周囲との差、D＋Q、3D対角、3D全成分）。
-主対象は谷。各モデル・ひずみ比ごとに1パネルの個別PNG/PDFを出力し、起点捕捉率と補助の粒Precision・粒F1を同じパネル内にまとめる（単位の違いを凡例で明記）。overviewは5条件を2行3列で表示。
+主対象は谷。各モデル・ひずみ比ごとに1パネルの個別PNG/PDFを出力し、起点捕捉率と予測面積率を同じパネル内にまとめる（単位の違いを凡例で明記）。overviewは5条件を2行3列で表示。
 各標本は1ケース（seed・方位ばらつきsdの組合せ）。閾値倍率の違いは標本に混ぜない。
 実測は局所谷底線を正の長さで含む粒、予測は隣接粒の局所平面より低い粒を検出。主評価の低さ下限は局所低さRMSの0.5倍で、0.5・1・2倍も保存する。実測の線抽出条件はモデル間で固定。
 予測値・検出閾値はCPFEMに合わせて調整しない。

@@ -71,3 +71,30 @@ def test_stricter_prediction_threshold_reduces_candidates_without_changing_refer
     assert not (b.predicted_feature & ~a.predicted_feature).any()
     assert b.predicted_feature.sum()<a.predicted_feature.sum()
     pd.testing.assert_frame_equal(loose['bottom_lines'],strict['bottom_lines'])
+
+
+def test_surface_origins_do_not_require_a_bottom_line(tmp_path,monkeypatch):
+    import src.theme1.valley_bottom as module
+    top=mesh(tmp_path,24,individual=True)
+    top.z=.01-.002*np.exp(-((top.x-.5)**2+(top.y-.5)**2)/.02)
+    # Even a completely broken/empty line extraction must not erase the basin.
+    monkeypatch.setattr(module,'_thin',lambda mask:np.zeros_like(mask))
+    result=module.reference_bottom_lines(top,tmp_path)
+    assert result['segments'].empty
+    assert len(result['origins'])==1
+    origin=result['origins'].iloc[0]
+    assert abs(origin.x-.5)<.05 and abs(origin.y-.5)<.05
+    assert len(result['origin_support'])==4  # Shared corner, one event.
+    assert result['grains'].valley_feature.sum()>result['grains'].reference_feature.sum()
+    shifted=top.copy();shifted.z+=.004*shifted.x-.003*shifted.y+2
+    again=module.reference_bottom_lines(shifted,tmp_path)
+    assert set(again['origins'].node_id)==set(result['origins'].node_id)
+
+
+def test_boundary_minimum_is_retained_separately(tmp_path):
+    top=mesh(tmp_path,24,individual=True)
+    top.z=.01-.002*np.exp(-(top.x**2+(top.y-.5)**2)/.01)
+    result=reference_bottom_lines(top,tmp_path)
+    assert len(result['boundary_origins'])>=1
+    assert (result['boundary_origins'].x==0).any()
+    assert not (result['origins'].x==0).any()

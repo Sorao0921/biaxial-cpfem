@@ -1,3 +1,5 @@
+> 現行の起点評価（2026-10-29）：Precision・Recall・F1とΔM候補・和集合を撤去。起点捕捉率、予測面積率、面積当たり捕捉効率を表示。D＋Qページに山・稜線の対称評価を追加。以下の旧更新記録は当時の仕様です。詳細は `docs/surface_valley_origins.md`。
+
 # ローカル比較UI
 
 解析条件を選び、高さ・GOS・結晶粒回転・累積せん断ひずみの二次元マップを並べて比較するUIです。
@@ -150,7 +152,7 @@ PNGのファイル名には指標名、rho、seed、texture、sd、stateを含�
 
 両高さ図は同じ節点ID・範囲、共通の2〜98百分位の色範囲で表示します。正規化や実測振幅への調整はしません。予測データ・固定条件をZIP保存できます。初期5指標（state1）とstate13高さの従来の2段表示は、別の折りたたみに残しています。各指標の表示色範囲は同じ2〜98百分位ルールです。
 
-CLIは `.venv/bin/python -m tools.theme1.predict_neighbor_height`。詳細は `docs/neighbor_height_prediction.md`。χ・Kの式は `docs/initial_stress_response.md`、版別HV対応は `docs/initial_height_state13.md` を参照してください。
+CLIは `.venv/bin/python -m tools.theme2.predict_neighbor_height`。詳細は `docs/neighbor_height_prediction.md`。χ・Kの式は `docs/initial_stress_response.md`、版別HV対応は `docs/initial_height_state13.md` を参照してください。
 
 高さ予測の現行モデルは近傍との活動超過を谷の駆動源とし、RD・TD伸長差を配合する。低K抵抗のチェックで、低K粒への沈み込み伝達を抑制できる。駆動の幾何重みと伝達重みを分離し、実測値には合わせない。詳細は `docs/neighbor_height_prediction.md`。
 
@@ -197,3 +199,9 @@ state02で固定した5モデルの粒候補・初期Taylor factor差の粒界�
 - パラメータ比較の横並び条件はstateを既定とし、選択肢はstate・sd。rhoは固定条件として選択する。
 - 「高さの帯域比較」はrho・texture比較に限定。state推移とsd単独比較を撤去し、sd=2・4・6・8・10の5パネルを全て表示する。奇数sdは集計・表示CSVから除外。絶対エネルギー／帯域比率とも低・中・高の積み上げ棒、seed別表示を維持する。
 - 「谷形成起点の因子比較」のメニュー名からstate02を除去。画面での計算はm=0.05、指定相当ひずみ0.00901で固定し、両設定の操作・説明を省略。既存のモデル番号を保ち、マップ・主集計・プロパティ表・比較PNGの並びは1・2・4・5・3。計算上の因子差比較ペアは維持する。計算条件は出力ZIP内に保存する。
+
+「D＋Q：起点の追加捕捉」を追加。ケース別のstate積み上げ棒（捕捉／未捕捉）と累積捕捉率、初期予測および全stateの起点・谷底線付き高さを表示する。選択rhoの全ケースを同一終了stateで集計し、seed別・texture横軸・sd色分けの最終捕捉率散布図を表示可能。詳細：`docs/dq_origin_history.md`。
+
+D＋Qの最終累積捕捉率は全rhoをまとめて集計し、texture別・seed別パネルで横軸sd、色・記号rhoの散布図として表示する。全ケースを同一終了stateで比較する。
+
+カタログのsdを2・4・6・8・10に統一。奇数sdは全画面の選択・集計から除外し、保存済みD＋Q集計の表示にも同じ制限を適用する。元の解析データは削除しない。

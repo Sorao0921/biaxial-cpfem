@@ -3,6 +3,7 @@ import io
 import json
 import zipfile
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection,LineCollection
 from matplotlib.colors import ListedColormap,BoundaryNorm
@@ -12,8 +13,8 @@ from src.theme1.initial_fourway import MODEL_NAMES,LABELS
 from src.dashboard.export import combine_map_pngs
 from src.dashboard.plots import surface_topology
 
-COLORS=['#f0f2f4','#23965f','#e79d19','#397dcc','#999999']
-CODES={'TN':0,'TP':1,'FP':2,'FN':3,'EXCLUDED':4}
+COLORS=['#f0f2f4','#23965f','#e79d19','#397dcc','#999999','#31b7bd']
+CODES={'TN':0,'TP':1,'FP':2,'FN':3,'EXCLUDED':4,'VALLEY':5}
 
 
 def valley_figures(result,model_dir,*,level='grain',feature='valley',threshold_factor=1.,model_names=None,labels=None):
@@ -27,11 +28,11 @@ def valley_figures(result,model_dir,*,level='grain',feature='valley',threshold_f
     segments=[xy[[a-1,b-1]] for a,b in boundaries if a in visible and b in visible]
     flags=result['flags'];flags=flags[(flags.level==level)&(flags.feature==feature)&np.isclose(flags.threshold_factor,threshold_factor)]
     metrics=result['metrics'];metrics=metrics[(metrics.level==level)&(metrics.feature==feature)&np.isclose(metrics.threshold_factor,threshold_factor)].set_index('model')
-    cmap=ListedColormap(COLORS);norm=BoundaryNorm(np.arange(-.5,5.5),cmap.N)
+    cmap=ListedColormap(COLORS);norm=BoundaryNorm(np.arange(-.5,len(COLORS)+.5),cmap.N)
     figures=[]
     for name in (*model_names,'cpfem'):
         f=flags[flags.model==(name if name!='cpfem' else model_names[0])].set_index('item_id')
-        codes=f.outcome.map(CODES) if name!='cpfem' else f.reference_feature.astype(int)*3
+        codes=f.outcome.map(CODES) if name!='cpfem' else (pd.Series(np.where(f.reference_feature,3,np.where(f.reference_valley,5,0)),index=f.index) if 'reference_valley' in f else f.reference_feature.astype(int)*3)
         fig,ax=plt.subplots(figsize=(5.2,4.5),layout='constrained')
         if level=='grain':
             values=codes.loc[geometry.loc[keep].part_id].to_numpy(int)
@@ -41,15 +42,25 @@ def valley_figures(result,model_dir,*,level='grain',feature='valley',threshold_f
         else:
             values=codes.loc[ids].to_numpy(int)
             ax.scatter(xy[ids-1,0],xy[ids-1,1],c=values,cmap=cmap,norm=norm,s=3,marker='s',linewidths=0)
-        title=labels[name].split(' (')[0]+(f'\n{feature.capitalize()} | origin support | ' if result['metadata'].get('method_version') in ('bottom_line_supported_grains_v1','blue_bottom_line_supported_grains_v2','strict_blue_bottom_line_supported_grains_v3','local_valley_origins_v4') else f'\n{feature.capitalize()} | own automatic cutoff | ')+('grains' if level=='grain' else 'surface nodes')
+        title=labels[name].split(' (')[0]+(f'\n{feature.capitalize()} | origin support | ' if result['metadata'].get('method_version') in ('bottom_line_supported_grains_v1','blue_bottom_line_supported_grains_v2','strict_blue_bottom_line_supported_grains_v3','local_valley_origins_v4','surface_valley_origins_v5','surface_valley_origins_v6_capture_area') else f'\n{feature.capitalize()} | own automatic cutoff | ')+('grains' if level=='grain' else 'surface nodes')
         if name!='cpfem':
             row=metrics.loc[name]
             title+=(f'\nOrigin recall={row.origin_recall:.2f}' if 'origin_recall' in row.index else f'\nRecall={row.recall:.2f}, Precision={row.precision:.2f}')
-        else:title+=('\nObserved local origins' if result['metadata'].get('method_version')=='local_valley_origins_v4' else f'\nCPFEM target {feature}s')
+        else:title+=('\nObserved local origins' if result['metadata'].get('method_version') in ('local_valley_origins_v4','surface_valley_origins_v5','surface_valley_origins_v6_capture_area') else f'\nCPFEM target {feature}s')
+        boundary=result.get('boundary_origins')
+        if boundary is not None and len(boundary):
+            nodes=boundary.node_id.to_numpy(int)
+            ax.scatter(xy[nodes-1,0],xy[nodes-1,1],s=30,marker='x',c='#555555',linewidths=1,zorder=5)
         ax.set(title=title,xlabel='Initial x',ylabel='Initial y',aspect='equal');ax.margins(0)
         ax.title.set_fontsize(12);ax.tick_params(labelsize=9)
-        handles=[Patch(facecolor=COLORS[k],label=label) for k,label in [(1,'Hit (TP)'),(2,'No bottom support (FP)' if result['metadata'].get('method_version') in ('bottom_line_supported_grains_v1','blue_bottom_line_supported_grains_v2','strict_blue_bottom_line_supported_grains_v3','local_valley_origins_v4') else 'False alarm (FP)'),(3,'Miss / target (FN)')]]
-        ax.legend(handles=handles,loc='upper center',bbox_to_anchor=(.5,-.13),ncol=3,fontsize=8,frameon=False)
+        handles=[Patch(facecolor=COLORS[k],label=label) for k,label in [(1,'Hit (TP)'),(2,'No bottom support (FP)' if result['metadata'].get('method_version') in ('bottom_line_supported_grains_v1','blue_bottom_line_supported_grains_v2','strict_blue_bottom_line_supported_grains_v3','local_valley_origins_v4','surface_valley_origins_v5','surface_valley_origins_v6_capture_area') else 'False alarm (FP)'),(3,'Miss / target (FN)')]]
+        if 'reference_valley' in f:
+            entries=[(1,'Origin captured'),(5,'Valley without origin'),(2,'Neither: FP'),(3,'Origin missed')] if name!='cpfem' else [(3,'Origin support'),(5,'Valley without origin')]
+            handles=[Patch(facecolor=COLORS[k],label=label) for k,label in entries]
+        if boundary is not None and len(boundary):
+            from matplotlib.lines import Line2D
+            handles.append(Line2D([],[],color='#555555',marker='x',linestyle='none',label='Boundary candidate'))
+        ax.legend(handles=handles,loc='upper center',bbox_to_anchor=(.5,-.13),ncol=2,fontsize=8,frameon=False)
         figures.append(fig)
     return figures
 
@@ -66,7 +77,7 @@ def valley_archive(result,fft=None):
     with zipfile.ZipFile(stream,'w',compression=zipfile.ZIP_DEFLATED) as z:
         for name in ['metrics','flags','grain_heights','node_heights','grain_distances','node_distances','planes','centroids','thresholds']:z.writestr(name+'.csv',result[name].to_csv(index=False))
         z.writestr('method.json',json.dumps(result['metadata'],ensure_ascii=False,indent=2))
-        for name in ['bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags','taylor_factors','taylor_boundary_segments','taylor_boundaries','taylor_origin_boundary','taylor_boundary_metrics','union_metrics','union_origin_flags']:
+        for name in ['boundary_origins','bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags']:
             if name in result:z.writestr(name+'.csv',result[name].to_csv(index=False))
         if fft is not None:
             z.writestr('fft_scales.csv',fft['metrics'].to_csv(index=False))

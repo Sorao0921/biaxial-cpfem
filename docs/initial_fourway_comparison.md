@@ -80,8 +80,8 @@ Cの反復残差、反転要素数、最大初期固有ひずみ等を記録し�
 ## 一括比較
 
 ```
-python -m tools.theme1.compare_initial_models --rho=-0.5 --seed 1 --sd 8
-python -m tools.theme1.compare_initial_models --rho=-0.5 --seed 1 --sd 8 --q-coupling 0
+python -m tools.theme2.compare_initial_models --rho=-0.5 --seed 1 --sd 8
+python -m tools.theme2.compare_initial_models --rho=-0.5 --seed 1 --sd 8 --q-coupling 0
 ```
 
 --texture brassで1組織。条件を指定しなければ既存state13全240ケースが対象。UIでも全240ケースを選択できる。既定共通条件はm=0.05、strain=0.1、eta=0.75、lambda=1、gamma=1、nu=0.3。

@@ -152,8 +152,8 @@ m=0.05、指定相当対数ひずみ=0.1、粒間結合lambda=1、面内配合al
 - source_manifest.csv: 入力・実測の元ファイルとSHA256。
 
 プロジェクトPython環境で、保存したsrcとtoolsをプロジェクトルートに置いて実行：
-python -m tools.theme1.predict_neighbor_height --outputs <解析出力ルート> --orientations <initial_inputs/inputs/orientation> --spatial-models <initial_inputs/spatial_model> --output-dir <再計算先>
-python -m tools.theme1.build_all_case_atlas --root <再計算先の親>
+python -m tools.theme2.predict_neighbor_height --outputs <解析出力ルート> --orientations <initial_inputs/inputs/orientation> --spatial-models <initial_inputs/spatial_model> --output-dir <再計算先>
+python -m tools.theme2.build_all_case_atlas --root <再計算先の親>
 図の再作成にはdata/evaluation.csvのdirectoryとheight_sourceを展開先に合わせる。数値比較は各caseのactual_coordinates_state13.csvとevaluation_predicted_coordinates.csvから独立に再計算可能。元のd3plotや変形履歴は同梱していない。予測は変形履歴を必要としない。
 
 共有用ZIPはPDF・CSV・説明のみ。個別PNGと詳細再現データは別ZIP。
@@ -161,7 +161,7 @@ python -m tools.theme1.build_all_case_atlas --root <再計算先の親>
     (root/'README_先生向け.md').write_text(text,encoding='utf-8')
     (root/'pdf_page_counts.json').write_text(json.dumps(counts,indent=2)+'\n')
     shared=['comparison_atlas_all_240_cases.pdf','accuracy_all_cases.csv','accuracy_by_texture_rho.csv','README_先生向け.md','conditions.json','source_manifest.csv']
-    shutil.copy2(Path(__file__),root/'reproduce/tools/theme1'/Path(__file__).name)
+    shutil.copy2(Path(__file__),root/'reproduce/tools/theme2'/Path(__file__).name)
     for archive,files in [
         ('teacher_review_package.zip',[root/x for x in shared]),
         ('individual_comparison_maps.zip',list((root/'individual_maps').glob('*.png'))),

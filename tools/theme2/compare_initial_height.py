@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 from src.config.pipeline_paths import THEME1_DIR
-from tools.theme1.predict_initial_height import main as predict
+from tools.theme2.predict_initial_height import main as predict
 
 
 def save_comparison(root):

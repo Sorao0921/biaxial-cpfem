@@ -40,7 +40,7 @@ UIの「谷形成起点の因子比較（state02）」を使用。全240条件�
 単一条件の保存例：
 
 ```
-.venv/bin/python -m tools.theme1.compare_valley_onset --rho -0.5 --seed 1 --texture brass --sd 2
+.venv/bin/python -m tools.theme2.compare_valley_onset --rho -0.5 --seed 1 --texture brass --sd 2
 ```
 
 フィルタを指定しなければ利用可能なstate02全条件を計算する。予測座標・条件は参照読込前に保存。出力はdatabase/theme1/valley_onset_state02以下で、旧state13の結果は上書きしない。ZIPには初期指標・粒界情報・予測座標・初期テンソル・谷判定・重心・平面・閾値・因子別の粒ID変化を含む。CLIには全変位も保存する。
@@ -48,7 +48,7 @@ UIの「谷形成起点の因子比較（state02）」を使用。全240条件�
 ## 全ケースの予測・箱ひげ図出力
 
 ```
-.venv/bin/python -m tools.theme1.plot_onset_boxplots
+.venv/bin/python -m tools.theme2.plot_onset_boxplots
 ```
 
 state02の全ケースで6条件を計算し、`output/reports/valley_onset_state02_boxplots/`へ保存する。`individual_models/`にモデル別・ひずみ比別の18図、`all_boxplots.pdf`に個別図をまとめる。各パネル内にPrecision・Recall・F1を並べる。3つのoverview図は6条件を2行3列で表示。

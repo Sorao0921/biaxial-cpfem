@@ -29,7 +29,8 @@ def test_matched_ablations_and_initial_only_prediction(tmp_path):
     actual=models['equilibrium']['coordinates'].copy()
     before=actual.copy(deep=True)
     result=evaluate_onset(p,actual,tmp_path)
-    assert not {'chance_recall','recall_lift','ap_chance'}&set(result['metrics'])
+    assert not {'chance_recall','recall_lift','ap_chance','precision','recall','f1'}&set(result['metrics'])
+    assert not any('taylor' in k or 'union' in k for k in result)
     assert len(result['transitions'])==9
     assert set(result['transition_grains'].transition)<= {'unchanged','new_hit','lost_hit','new_false_alarm','removed_false_alarm'}
     pd.testing.assert_frame_equal(before,models['equilibrium']['coordinates'])

@@ -1,5 +1,7 @@
 # LS-DYNA 二軸引張・結晶塑性解析パイプライン仕様書
 
+実行ツールの分類とコマンドは [tools/README.md](tools/README.md) を参照。theme1 はメカニズム解明、theme2 は予測・評価、高さ分布の帯域分析は postprocess に配置する。
+
 ## Git管理とローカルデータの整理
 
 Gitでは `src/`、`tools/`、`tests/`、説明資料、依存関係定義、外部ソース、共通メッシュと負荷・制御設定を管理する。
@@ -514,7 +516,7 @@ python -m tools.postprocess.post_main --rho -0.5 --seed 3 --step all
 初期 Taylor 面外活動による凹凸候補と、隣接粒の M 差による粒間勾配候補を幾何学重みで結合し、表面高さを計算する。シミュレーションは評価だけに用いる。高さ変換・斜面の向きは事前に固定する追加仮定であり、Taylor 理論から一意に導かれる高さではない。
 
 ```sh
-.venv/bin/python -m tools.theme1.predict_initial_height --strain 0.1
+.venv/bin/python -m tools.theme2.predict_initial_height --strain 0.1
 ```
 
 UI の「初期指標と表面高さ（state13）」に、初期指標＋共有粒界長／粒間距離の結合から高さを再構成する機能を追加。K・χ・Taylor P−・P_abs・M・事前固定ブレンドを切り替え、予測とstate13高さを比較できる。実測を使った学習・符号や係数・振幅の最適化は行わない。従来の初期指標の2段マップは折りたたみに保持。[高さ再構成の式と仮定](docs/neighbor_height_prediction.md) を参照。
@@ -557,15 +559,29 @@ Theme 1では端部除去済み座標を使わず、`coords/rawdata` の表面�
 表面要素が共有する辺から結晶粒の隣接グラフを構築し、符号付き表面高さ、累積せん断ひずみ、粒回転、GOSを低・中・高グラフ周波数帯へ分解する。
 
 ```bash
-python tools/theme1/analyze_graph_spectra.py
+python tools/postprocess/analyze_graph_spectra.py
 ```
 
 全ケースを省メモリで実行し、通常の解釈で主に使う帯域エネルギーと
 粒別の帯域再構成値だけを保存する場合:
 
 ```bash
-python tools/theme1/analyze_graph_spectra.py --skip-mode-coefficients
+python tools/postprocess/analyze_graph_spectra.py --skip-mode-coefficients
 ```
+
+未計算ケースだけを既存CSVへ追加する場合:
+
+```bash
+uv run python -m tools.postprocess.analyze_graph_spectra --resume --skip-mode-coefficients
+```
+
+`--resume` は既存の帯域エネルギーと粒別信号に揃っているケースをスキップする。
+帯域の欠落・重複があるケースは再計算して置換する。`--rho`、`--seed`、
+`--texture`、`--sd`、`--state` で限定しても他の既存ケースは保持する。
+追加結果は一時CSVへ保存し、全対象の計算成功後に各CSVを置き換える。
+`--skip-mode-coefficients` 指定時は既存のモード係数CSVを保持するが追加しない。
+モード係数も補完するには同フラグなしで `--resume` を実行する。
+元入力を変更したケースの再計算には、従来の全件実行か別の `--output-dir` を使う。
 
 結果CSVはケースごとに逐次書き込まれるため、全ケース分のDataFrameを
 メモリに保持しない。`--skip-mode-coefficients` を指定しない場合は、従来どおり
@@ -1030,8 +1046,8 @@ Before execution, confirm that all files required by `build_pre_directories()` a
 
 ### 初期Sachs全テンソルによる3次元平衡比較
 
-`python -m tools.theme1.compare_sachs_equilibrium --rho=-0.5 --seed 1 --sd 8` で、初期3次元メッシュ全体の固定固有ひずみ平衡解を従来K予測・state13高さと比較する。初期入力だけで両予測を保存した後に解析高さを評価する。UIにも3枚比較を追加。計算の位置付け・境界条件・小変形適用範囲の診断は `docs/sachs_equilibrium_prediction.md` を参照。
+`python -m tools.theme2.compare_sachs_equilibrium --rho=-0.5 --seed 1 --sd 8` で、初期3次元メッシュ全体の固定固有ひずみ平衡解を従来K予測・state13高さと比較する。初期入力だけで両予測を保存した後に解析高さを評価する。UIにも3枚比較を追加。計算の位置付け・境界条件・小変形適用範囲の診断は `docs/sachs_equilibrium_prediction.md` を参照。
 
 ### K・D/Q・3D平衡・CPFEMの比較
 
-`python -m tools.theme1.compare_initial_models --rho=-0.5 --seed 1 --sd 8` で、初期KのND差のみ、粒界面内のテンソル不適合Qを追加した指標モデル、3次元平衡、CPFEM参照を4枚で比較する。UIの初期予測メニューも同じ比較へ更新。Q=0のアブレーション、共通初期入力、参照へのデータ漏洩防止、実粒界法線を用いる実装の定義は `docs/initial_fourway_comparison.md` を参照。
+`python -m tools.theme2.compare_initial_models --rho=-0.5 --seed 1 --sd 8` で、初期KのND差のみ、粒界面内のテンソル不適合Qを追加した指標モデル、3次元平衡、CPFEM参照を4枚で比較する。UIの初期予測メニューも同じ比較へ更新。Q=0のアブレーション、共通初期入力、参照へのデータ漏洩防止、実粒界法線を用いる実装の定義は `docs/initial_fourway_comparison.md` を参照。

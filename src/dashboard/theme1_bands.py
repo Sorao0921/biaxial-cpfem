@@ -20,7 +20,8 @@ import streamlit as st
 from src.config.pipeline_paths import THEME1_DIR, build_post_directories
 
 BANDS = ("low", "mid", "high")
-SD_LEVELS = (2, 4, 6, 8, 10)
+from src.config.case_selection import CATALOG_SD_LEVELS
+SD_LEVELS = CATALOG_SD_LEVELS
 COLORS = ("#3575AB", "#CD8032", "#7B8740")
 FIELDS = ("texture", "rho", "sd", "state")
 

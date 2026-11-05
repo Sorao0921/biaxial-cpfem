@@ -116,7 +116,7 @@ def main():
         color_rule='pooled predicted/actual nodal z, 2-98 percentiles within each case; no value clipping in metrics',
         scope_count=len(metrics),catalog='all currently available state13 height cases',date='2026-10-15'),indent=2)+'\n')
     snapshot=root/'reproduce';snapshot.mkdir(exist_ok=True)
-    for folder in ['src','tools/theme1','docs']:
+    for folder in ['src','tools/theme1','tools/theme2','tools/postprocess','docs']:
         for source in (PROJECT_ROOT/folder).rglob('*'):
             if source.is_file() and source.suffix in ('.py','.md'):
                 target=snapshot/source.relative_to(PROJECT_ROOT);target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)

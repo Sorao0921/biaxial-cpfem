@@ -24,7 +24,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     records=filter_records(scan_outputs(OUTPUTS_DIR),kind='height',state=2,rho=args.rho,seed=args.seed,texture=args.texture,sd=args.sd)
     if not records:raise SystemExit('No matching state02 reference heights')
-    args.output_dir.mkdir(parents=True,exist_ok=True);rows=[];union_rows=[];failures=[]
+    args.output_dir.mkdir(parents=True,exist_ok=True);rows=[];failures=[]
     for i,r in enumerate(records):
         case=f'rho_{r.rho:g}_{r.texture}_sd{r.sd}_seed{r.seed}_state02'
         try:
@@ -44,13 +44,12 @@ def main(argv=None):
             result=evaluate_onset(prediction,reference,mesh)
             result['metadata'].update(source_case=case,reference_height_source=str(r.path))
             (target/'onset_evaluation.zip').write_bytes(onset_archive(prediction,result))
-            for key in ['metrics','transitions','transition_grains','centroids','thresholds','bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags','taylor_factors','taylor_boundary_segments','taylor_boundaries','taylor_origin_boundary','taylor_boundary_metrics','union_metrics','union_origin_flags']:
+            for key in ['metrics','transitions','transition_grains','centroids','thresholds','bottom_lines','bottom_line_support','reference_bottom_grains','local_lowness','origins','origin_nodes','origin_support','origin_flags']:
                 result[key].to_csv(target/(key+'.csv'),index=False)
             if not args.skip_maps:
                 figures=valley_figures(result,mesh,model_names=MODEL_NAMES,labels=LABELS)
                 (target/'valley_initiation.png').write_bytes(valley_png(figures,columns=len(figures)))
                 for figure in figures:plt.close(figure)
-            union_rows.append(result['union_metrics'].assign(case_id=case,config_id=prediction['config_id'],rho=r.rho,seed=r.seed,texture=r.texture,sd=r.sd))
             rows.append(result['metrics'].assign(case_id=case,config_id=prediction['config_id'],rho=r.rho,seed=r.seed,texture=r.texture,sd=r.sd))
             print(f'[{i+1}/{len(records)}] {case}',flush=True)
         except (ValueError,KeyError,OSError) as error:
@@ -58,9 +57,6 @@ def main(argv=None):
     if rows:
         file=args.output_dir/'metrics.csv';previous=pd.read_csv(file) if file.exists() else pd.DataFrame()
         pd.concat([previous,*rows],ignore_index=True).drop_duplicates(['case_id','config_id','model','level','feature','threshold_factor'],keep='last').to_csv(file,index=False)
-    if union_rows:
-        file=args.output_dir/'union_metrics.csv';previous=pd.read_csv(file) if file.exists() else pd.DataFrame()
-        pd.concat([previous,*union_rows],ignore_index=True).drop_duplicates(['case_id','config_id','model','threshold_factor','threshold_rms_multiplier'],keep='last').to_csv(file,index=False)
     pd.DataFrame(failures,columns=['case_id','error']).to_csv(args.output_dir/'failures.csv',index=False)
     return int(bool(failures))
 

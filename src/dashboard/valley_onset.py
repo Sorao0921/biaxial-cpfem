@@ -119,17 +119,6 @@ def render_valley_onset():
             step=0.1,
             key="onset-prediction-threshold",
         )
-        boundary_threshold = st.slider(
-            "初期Taylor factor差の粒界採択（RMS倍率）",
-            min_value=0.5,
-            max_value=2.0,
-            value=1.0,
-            step=0.25,
-            key="onset-taylor-threshold",
-        )
-        st.caption(
-            "ΔM=|初期M_i−初期M_j|。初期表面の粒界長で重み付けしたRMSの1倍を既定とし、候補粒界そのものを追加します。両側の粒全体は追加しません。"
-        )
         st.caption(
             "倍率が大きいほど、周囲より明確に低い粒だけを残します。実測との一致が最大になる値を自動選択する処理は行いません。"
         )
@@ -155,108 +144,24 @@ def render_valley_onset():
             reference,
             model,
             prediction_threshold_rms=prediction_threshold,
-            taylor_boundary_rms=boundary_threshold,
         )
     except (ValueError, KeyError, OSError) as error:
         st.error(str(error))
         return
-    case = f"rho_{row.rho:g}_{row.texture}_sd{row.sd}_seed{row.seed}_state02_cfg{prediction['config_id']}_predRMS{prediction_threshold:g}_deltaMRMS{boundary_threshold:g}"
+    case = f"rho_{row.rho:g}_{row.texture}_sd{row.sd}_seed{row.seed}_state02_cfg{prediction['config_id']}_predRMS{prediction_threshold:g}"
     st.caption(
-        "実測：高さマップの青い低部に限定した谷底線上の局所最深部を含む粒（粒界上では両側）。予測：周辺の局所平面からの低さが、局所低さRMSの指定倍率を超える粒。最深部を含む粒を予測したときに起点を捕捉したと数えます。橙は実測の起点を含まない候補で、谷の斜面にある可能性もあります。"
+        "実測：高さ場から直接検出した起点支持粒と、周辺より低い谷粒。予測：周辺の局所平面からの低さが、局所低さRMSの指定倍率を超える粒。緑は起点捕捉、水色は谷のみ、橙はどちらでもないFPです。"
     )
     metrics = result["metrics"].query(
         "level=='grain' and feature=='valley' and threshold_factor==1"
     )
-    shown = metrics[
-        [
-            "model",
-            "origin_count",
-            "hit_origin_count",
-            "origin_recall",
-            "predicted_count",
-            "precision",
-            "f1",
-        ]
-    ].copy()
-    shown = display_order(shown)
-    shown.model = shown.model.map(LABELS)
-    st.dataframe(
-        shown.rename(
-            columns={
-                "model": "モデル",
-                "origin_count": "実測の起点数",
-                "hit_origin_count": "捕捉した起点数",
-                "origin_recall": "起点捕捉率",
-                "precision": "粒Precision（補助）",
-                "f1": "粒F1（補助）",
-                "predicted_count": "周囲より低い予測粒数",
-                "reference_coverage": "参照対象粒の割合",
-                "excluded_no_neighbors": "近傍不足の除外数",
-                "bottom_line_coverage": "実測谷底線の被覆率",
-            }
-        ),
-        hide_index=True,
-        width="stretch",
-    )
-    st.caption(
-        "主指標の起点捕捉率は、谷底線上の局所最深部を1点につき1回数えます。粒界上で両側の粒を予測しても二重加点しません。粒Precision・F1は補助指標で、起点の個数とは単位が異なります。"
-    )
-    st.caption(
-        "初期Taylor factor差の粒界候補との和集合：同じ起点は一度だけ加点します。粒と粒界では予測単位が違うため、和集合のPrecision/F1は作りません。"
-    )
-    union = result["union_metrics"]
-    chosen = union[np.isclose(union.threshold_factor, 1.0)].copy()
-    chosen = display_order(chosen)
-    chosen.model = chosen.model.map(LABELS)
-    st.dataframe(
-        chosen[
-            [
-                "model",
-                "origin_count",
-                "original_hit_origin_count",
-                "boundary_hit_origin_count",
-                "union_hit_origin_count",
-                "additional_origins",
-                "original_origin_recall",
-                "union_origin_recall",
-            ]
-        ],
-        hide_index=True,
-        width="stretch",
-    )
-    st.dataframe(
-        result["taylor_boundary_metrics"][
-            [
-                "candidate_boundary_count",
-                "candidate_boundaries_with_origin",
-                "candidate_boundaries_without_origin",
-                "boundary_precision",
-                "candidate_boundary_length",
-                "candidate_length_fraction",
-                "junction_origin_count",
-            ]
-        ],
-        hide_index=True,
-        width="stretch",
-    )
-    st.caption(
-        "粒界側の未対応候補は「state02の実測起点を含まない粒界」です。三重点では複数の候補粒界への帰属を保存し、起点は重複計上しません。境界的中率は粒界ペア数、候補範囲は粒界長で別に表示します。"
-    )
+    columns=['model','origin_count','hit_origin_count','origin_recall','predicted_count','predicted_area_fraction','capture_per_area']
+    shown=display_order(metrics[columns].copy());shown.model=shown.model.map(LABELS)
+    st.dataframe(shown.rename(columns={'origin_recall':'起点捕捉率','predicted_area_fraction':'予測面積率','capture_per_area':'面積当たり捕捉効率'}),hide_index=True,width='stretch')
+    st.caption('起点捕捉率と予測面積率を併記します。面積当たり捕捉効率＝捕捉率÷予測面積率。全域予測では1となり、小さな領域で多くの起点を拾うほど高くなります。統計的な信頼確率ではありません。起点0または予測面積0では該当指標は未定義です。')
     detection = valley_figures(result, model, model_names=DISPLAY_MODELS, labels=LABELS)
     from matplotlib.collections import LineCollection
 
-    boundary = result["taylor_boundary_segments"]
-    boundary = boundary[boundary.candidate]
-    material_segments = (
-        boundary[["x_a", "y_a", "x_b", "y_b"]].to_numpy(float).reshape(-1, 2, 2)
-    )
-    for figure in detection:
-        if len(material_segments):
-            figure.axes[0].add_collection(
-                LineCollection(
-                    material_segments, colors="#c026d3", linewidths=1.3, zorder=6
-                )
-            )
     heights = []
     for name in (*DISPLAY_MODELS, "cpfem"):
         coordinates = result["selected"][name]
@@ -288,18 +193,6 @@ def render_valley_onset():
                         ],
                     )
                 )
-        if len(boundary):
-            lookup = coordinates.set_index("node_id")[["x", "y"]]
-            edges = np.stack(
-                [
-                    lookup.loc[boundary.node_a].to_numpy(),
-                    lookup.loc[boundary.node_b].to_numpy(),
-                ],
-                axis=1,
-            )
-            figure.axes[0].add_collection(
-                LineCollection(edges, colors="#c026d3", linewidths=1.3, zorder=6)
-            )
         if name == "cpfem" and len(result["origins"]):
             origins = result["origins"]
             figure.axes[0].scatter(
@@ -314,7 +207,7 @@ def render_valley_onset():
             )
         heights.append(figure)
     st.caption(
-        "各列の上段が谷検出、下段が高さ分布です。実測高さ図の緑線が谷底線、黄色の星が評価対象の局所起点、紫線がΔMによる候補粒界です。4モデルずつ折り返し、上下で同じモデルを揃えます。"
+        "各列の上段が谷検出、下段が高さ分布です。実測高さ図の緑線が谷底線、黄色の星が評価対象の局所起点です。4モデルずつ折り返し、上下で同じモデルを揃えます。"
     )
     for start in range(0, len(detection), 4):
         for row_figures in [detection[start : start + 4], heights[start : start + 4]]:
@@ -377,9 +270,8 @@ def render_valley_onset():
                     "origin_count",
                     "hit_origin_count",
                     "origin_recall",
-                    "precision",
-                    "recall",
-                    "f1",
+                    "predicted_area_fraction",
+                    "capture_per_area",
                 ]
             ],
             hide_index=True,
@@ -482,13 +374,6 @@ def render_valley_onset():
             st.caption(
                 "各stateの同じ抽出規則による検出上の出現です。出力間隔・閾値越え・位置対応の許容幅による曖昧さがあり、物理的な核生成の証明とは区別します。後続データは初期予測や閾値の調整へ戻しません。"
             )
-    st.download_button(
-        "和集合の起点捕捉CSV",
-        union.to_csv(index=False).encode("utf-8-sig"),
-        file_name=case + "_union_metrics.csv",
-        mime="text/csv",
-        key="onset-union-csv",
-    )
     st.download_button(
         "谷検出精度CSV",
         metrics.to_csv(index=False).encode("utf-8-sig"),

@@ -49,22 +49,11 @@ def classify_reference(detected,top,prior_segments,prior_origins,*,line_toleranc
     return lines,origins,material,origin_xy
 
 
-def _boundary_point_hits(points,edges,tolerance):
-    hits={}
-    for key,frame in edges.groupby('boundary_id'):
-        segments=frame[['x_a','y_a','x_b','y_b']].to_numpy(float).reshape(-1,2,2)
-        hits[key]=set(np.flatnonzero(point_segment_distances(points,segments)<=tolerance+1.e-12))
-    return hits
-
-
 def validate_delayed_candidates(onset_result,heights,model_dir):
     """heights must include state02; later states never update prediction sets."""
     if 2 not in heights:raise ValueError('state02 baseline is required')
     states=sorted(s for s in heights if s>=2)
     top,geometry,faces=_surface(model_dir)
-    full_edges=onset_result['taylor_boundary_segments']
-    boundary_edges=full_edges[full_edges.candidate].copy()
-    boundary_tolerance=onset_result['taylor_union_method']['matching_tolerance']
     grid_step=min(np.diff(np.unique(top.x)).min(),np.diff(np.unique(top.y)).min())
     diameter=onset_result['metadata']['reference_definition']['neighborhood_diameter']
     origin_tolerance=.5*diameter;line_tolerance=grid_step*1.01
@@ -75,9 +64,6 @@ def validate_delayed_candidates(onset_result,heights,model_dir):
         initial_line=onset_result['reference_bottom_grains'].set_index('part_id').full_line_feature
         for pid in sorted(pids):candidates.append(dict(channel=model,candidate_type='grain',candidate_id=str(pid),
             baseline_origin=bool(flags.loc[pid,'reference_feature']),baseline_line=bool(initial_line.get(pid,False))))
-    baseline_boundary_origins=set(onset_result['taylor_origin_boundary'].boundary_id)
-    for key in sorted(boundary_edges.boundary_id.unique()):
-        candidates.append(dict(channel='taylor_boundary',candidate_type='boundary',candidate_id=str(key),baseline_origin=key in baseline_boundary_origins,baseline_line=False))
     candidate_frame=pd.DataFrame(candidates,columns=['channel','candidate_type','candidate_id','baseline_origin','baseline_line'])
     baseline_ids=onset_result['node_heights'].node_id.to_numpy(int)
     kept=np.all(np.isin(faces,baseline_ids),axis=1)
@@ -96,23 +82,16 @@ def validate_delayed_candidates(onset_result,heights,model_dir):
         lines['state']=state;origins['state']=state
         origin_rows.append(origins);line_rows.append(lines)
         support=ref['origin_support'];line_support=ref['support']
-        boundary_origin_hits=_boundary_point_hits(origin_xy,boundary_edges,boundary_tolerance)
-        boundary_line_hits=_boundary_point_hits(material.mean(axis=1) if len(material) else np.empty((0,2)),boundary_edges,boundary_tolerance)
         visible_nodes=set(heights[state].node_id.astype(int))
         visible_grains=set(geometry.loc[np.all(np.isin(faces,list(visible_nodes)),axis=1),'part_id'].astype(int))
         novel_positions=set(np.flatnonzero(origins.novel_origin))
         new_valley_positions=set(np.flatnonzero(origins.appearance.eq('new_origin_in_new_valley')))
         new_line_positions=set(np.flatnonzero(lines.new_disconnected_valley))
         for c in candidate_frame.itertuples():
-            if c.candidate_type=='grain':
-                pid=int(c.candidate_id);visible=pid in visible_grains and required_nodes.get(pid,set())<=visible_nodes
-                # Require full baseline crop correspondence to avoid partial-grain censoring.
-                hits=set(np.flatnonzero(origins.origin_id.isin(support.loc[support.part_id==pid,'origin_id'])))
-                line_hits=set(np.flatnonzero(lines.segment_id.isin(line_support.loc[line_support.part_id==pid,'segment_id'])))
-            else:
-                edges=boundary_edges[boundary_edges.boundary_id==c.candidate_id]
-                visible=(set(edges.node_a)|set(edges.node_b))<=visible_nodes
-                hits=boundary_origin_hits.get(c.candidate_id,set());line_hits=boundary_line_hits.get(c.candidate_id,set())
+            pid=int(c.candidate_id);visible=pid in visible_grains and required_nodes.get(pid,set())<=visible_nodes
+            # Require full baseline crop correspondence to avoid partial-grain censoring.
+            hits=set(np.flatnonzero(origins.origin_id.isin(support.loc[support.part_id==pid,'origin_id'])))
+            line_hits=set(np.flatnonzero(lines.segment_id.isin(line_support.loc[line_support.part_id==pid,'segment_id'])))
             observations.append(dict(state=state,channel=c.channel,candidate_type=c.candidate_type,candidate_id=c.candidate_id,
                 baseline_origin=c.baseline_origin,baseline_line=c.baseline_line,visible=visible,
                 has_line=bool(line_hits) if visible else False,has_origin=bool(hits) if visible else False,
@@ -122,9 +101,9 @@ def validate_delayed_candidates(onset_result,heights,model_dir):
         for model,pids in grain_sets.items():
             for pos,o in enumerate(origins.itertuples()):
                 own=set(support.loc[support.origin_id==o.origin_id,'part_id'].astype(int))
-                grain_hit=bool(own&pids);boundary_hit=any(pos in values for values in boundary_origin_hits.values())
+                grain_hit=bool(own&pids)
                 capture_rows.append(dict(state=state,model=model,origin_id=o.origin_id,appearance=o.appearance,
-                    model_captured=grain_hit,boundary_captured=boundary_hit,union_captured=grain_hit or boundary_hit))
+                    model_captured=grain_hit))
         state_rows.append(dict(state=state,line_segments=len(lines),origins=len(origins),
             novel_origins=int(origins.novel_origin.sum()),new_valley_origins=int(origins.appearance.eq('new_origin_in_new_valley').sum()),
             new_disconnected_line_components=int(lines.loc[lines.new_disconnected_valley,'component_id'].nunique()),

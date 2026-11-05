@@ -92,7 +92,7 @@ def test_linear_validity_is_reported_separately_without_clipping():
 
 def test_cli_finishes_both_predictions_before_opening_actual(tmp_path,monkeypatch):
     from types import SimpleNamespace
-    import tools.theme1.compare_sachs_equilibrium as cli
+    import tools.theme2.compare_sachs_equilibrium as cli
     import matplotlib.pyplot as plt
     events=[]
     coordinates=pd.DataFrame({'node_id':[1,2,3],'x':[0.,1.,0.],'y':[0.,0.,1.],'z':[.1,.2,.3]})

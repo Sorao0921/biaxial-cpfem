@@ -66,3 +66,18 @@ def test_keeps_research_data() -> None:
     assert exclusion_reason(Path("outputs/rho_1/case/values.csv")) is None
     assert exclusion_reason(Path("models/rho_1/model.k")) is None
     assert exclusion_reason(Path("database/spatial_model/seed1/elements.csv")) is None
+
+
+def test_standard_sd_catalog_filter_keeps_sources(tmp_path):
+    from src.dashboard.catalog import scan_outputs
+    from src.config.case_selection import CATALOG_SD_LEVELS
+    paths=[]
+    for sd in range(1,11):
+        path=tmp_path/f'rho_0/rho_0_seed1/coords/rawdata/cube_sd{sd}_seed1/coords_cube_sd{sd}_seed1_state02.csv'
+        path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_text('node_id,x,y,z\n1,0,0,0\n')
+        paths.append(path)
+        reason=exclusion_reason(path.relative_to(tmp_path))
+        assert reason==('nonstandard_sd' if sd not in CATALOG_SD_LEVELS else None)
+    assert {r.sd for r in scan_outputs(tmp_path)}==set(CATALOG_SD_LEVELS)
+    assert all(p.exists() for p in paths)

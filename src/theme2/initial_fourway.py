@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from src.theme1.initial_mismatch import predict_indicator_models
-from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
-from src.theme1.neighbor_height import evaluate_coordinates
+from src.theme2.initial_mismatch import predict_indicator_models
+from src.theme2.sachs_equilibrium import predict_equilibrium_from_initial
+from src.theme2.neighbor_height import evaluate_coordinates
 
 MODEL_NAMES=('k_only','d_q','equilibrium')
 LABELS={'k_only':'A: K only (ND contrast D)','d_q':'B: D + Q (no 3D equilibrium)',

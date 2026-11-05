@@ -12,10 +12,10 @@ import streamlit as st
 from src.config.case_selection import CATALOG_SD_LEVELS
 from src.config.pipeline_paths import OUTPUTS_DIR, PROJECT_ROOT, build_spatial_model_dir, build_post_directories
 from src.dashboard.catalog import scan_outputs, filter_records
-from src.dashboard.theme1_bands import attach_equivalent_strain
+from src.dashboard.height_bands import attach_equivalent_strain
 from src.dashboard.initial_prediction import coordinate_height_figure, indicator_color_limits
-from src.theme1.contribution import _read_height
-from src.theme1.dq_origins import VERSION, predict_dq, track_dq, track_dq_peaks, project_reference_to_prediction
+from src.postprocess.case_data import _read_height
+from src.theme2.dq_origins import VERSION, predict_dq, track_dq, track_dq_peaks, project_reference_to_prediction
 
 CAPTURED='#3575AB'
 MISSED='#a9cbe3'

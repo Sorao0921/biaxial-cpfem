@@ -58,7 +58,7 @@ M差から無次元の勾配を定め、距離を掛けて長さ次元の高さ�
 
 state13 固定。`--strain` の既定は0.1で、結果ファイルから取得しない。「state13だから必ず0.1」とは仮定せず、負荷計画の指定値と整合することを確認する。ひずみは相当対数ひずみとして扱う。rho の変形比としての定義と解析の負荷条件も照合が必要。
 
-実装は `src/theme1/initial_height.py`、実行・評価は `tools/theme2/predict_initial_height.py`。
+実装は `src/theme2/initial_height.py`、実行・評価は `tools/theme2/predict_initial_height.py`。
 
 ## 出力と評価
 

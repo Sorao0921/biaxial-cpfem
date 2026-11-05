@@ -10,8 +10,8 @@ from tqdm.auto import tqdm
 
 from src.config.pipeline_paths import OUTPUTS_DIR, SPATIAL_MODELS_DIR, THEME1_DIR
 from src.dashboard.catalog import scan_outputs
-from src.theme1.contribution import complete_cases
-from src.theme1.graph_spectral import (
+from src.postprocess.case_data import complete_cases
+from src.postprocess.graph_spectral import (
     load_grain_signals,
     load_surface_graph,
     reconstruct_bands,

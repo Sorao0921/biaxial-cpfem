@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.theme1.valley_onset import predict_onset_models,evaluate_onset,MODEL_NAMES,reference_followup
+from src.theme2.valley_onset import predict_onset_models,evaluate_onset,MODEL_NAMES,reference_followup
 from tests.test_initial_mismatch import mesh_frames
 
 
@@ -47,7 +47,7 @@ def test_q_zero_and_zero_surface_coupling_recover_matched_baselines(tmp_path):
 
 def test_property_table_and_nonzero_transmission_rejected(tmp_path):
     import pytest
-    from src.theme1.valley_onset import property_table
+    from src.theme2.valley_onset import property_table
     table=property_table()
     assert len(table)==5
     assert table['Q拘束'].tolist()==['×','×','○','×','×']

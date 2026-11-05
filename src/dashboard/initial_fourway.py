@@ -10,8 +10,8 @@ from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,build_spatial_mod
 from src.dashboard.catalog import scan_outputs,filter_records
 from src.dashboard.initial_prediction import coordinate_height_figure,indicator_color_limits
 from src.dashboard.export import combine_map_pngs
-from src.theme1.contribution import _read_height
-from src.theme1.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES,LABELS
+from src.postprocess.case_data import _read_height
+from src.theme2.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES,LABELS
 
 
 def comparison_figures(prediction,evaluation,model_dir):

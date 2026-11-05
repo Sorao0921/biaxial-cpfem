@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from src.theme1.dq_origins import event_counts, predict_dq, track_dq
+from src.theme2.dq_origins import event_counts, predict_dq, track_dq
 from src.dashboard.dq_origins import history_figure
 from tests.test_valley_onset import inputs
 
@@ -69,7 +69,7 @@ def test_disappeared_origins_remain_in_cumulative_bars_and_rate():
 
 
 def test_projection_uses_node_ids_and_only_first_events_and_state02_lines():
-    from src.theme1.dq_origins import project_reference_to_prediction
+    from src.theme2.dq_origins import project_reference_to_prediction
     prediction=pd.DataFrame(dict(node_id=[30,10,20],x=[3.,1.,2.],y=[6.,4.,5.],z=[9.,7.,8.]))
     lines=pd.DataFrame(dict(state=[2,3],node_a=[10,20],node_b=[30,30]))
     origins=pd.DataFrame(dict(state=[2,3,4],node_id=[20,30,10],is_event=[True,True,False],x=[100.,200.,300.]))
@@ -98,9 +98,9 @@ def test_initial_summary_uses_state02_even_when_later_rate_differs():
 
 def test_peak_evaluation_is_sign_symmetric_and_does_not_change_prediction(tmp_path):
     from tests.test_valley_bottom import mesh
-    from src.theme1.dq_origins import evaluate_peak_origins
-    from src.theme1.valley_evaluation import valley_tables
-    from src.theme1.valley_bottom import bottom_supported_tables
+    from src.theme2.dq_origins import evaluate_peak_origins
+    from src.theme2.valley_evaluation import valley_tables
+    from src.theme2.valley_bottom import bottom_supported_tables
     top=mesh(tmp_path,20,individual=True)
     top.z=.01+.002*np.exp(-((top.x-.5)**2+(top.y-.5)**2)/.02)
     before=top.copy(deep=True)
@@ -118,7 +118,7 @@ def test_peak_evaluation_is_sign_symmetric_and_does_not_change_prediction(tmp_pa
 
 
 def test_peak_history_is_symmetric_with_original_coordinates(tmp_path):
-    from src.theme1.dq_origins import track_dq_peaks,track_dq
+    from src.theme2.dq_origins import track_dq_peaks,track_dq
     from tests.test_valley_bottom import mesh
     top=mesh(tmp_path,16,individual=True)
     top.z=.01+.002*np.exp(-((top.x-.5)**2+(top.y-.5)**2)/.02)

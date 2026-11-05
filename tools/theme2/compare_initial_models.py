@@ -9,8 +9,8 @@ from tqdm import tqdm
 from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,SPATIAL_MODELS_DIR,THEME1_DIR
 from src.dashboard.catalog import scan_outputs,filter_records
 from src.dashboard.initial_fourway import comparison_figures,figures_png
-from src.theme1.contribution import _read_height
-from src.theme1.initial_fourway import predict_three_models,evaluate_three_models,save_initial_prediction
+from src.postprocess.case_data import _read_height
+from src.theme2.initial_fourway import predict_three_models,evaluate_three_models,save_initial_prediction
 
 
 def main(argv=None):

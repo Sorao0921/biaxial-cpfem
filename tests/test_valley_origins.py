@@ -28,7 +28,7 @@ def test_flat_minimum_plateau_counts_once_and_line_end_is_not_an_origin():
 
 
 def test_boundary_origin_captured_once_when_both_supporting_grains_are_predicted(monkeypatch):
-    from src.theme1 import valley_bottom as module
+    from src.theme2 import valley_bottom as module
     ref=dict(boundary_origins=pd.DataFrame(),grains=pd.DataFrame(dict(part_id=[1,2],surface_area=[1.,1.],reference_feature=[True,True],valley_feature=[True,True],bottom_line_length=[1.,1.])),
         origins=pd.DataFrame(dict(origin_id=[0])),origin_nodes=pd.DataFrame(),
         origin_support=pd.DataFrame(dict(origin_id=[0,0],part_id=[1,2])),
@@ -42,7 +42,7 @@ def test_boundary_origin_captured_once_when_both_supporting_grains_are_predicted
 
 
 def test_origin_valley_only_and_unsupported_predictions_are_separate(monkeypatch):
-    from src.theme1 import valley_bottom as module
+    from src.theme2 import valley_bottom as module
     ref=dict(boundary_origins=pd.DataFrame(),grains=pd.DataFrame(dict(part_id=[1,2,3],surface_area=[1.,1.,1.],reference_feature=[True,False,False],valley_feature=[True,True,False],bottom_line_length=[1.,1.,0.])),
         origins=pd.DataFrame(dict(origin_id=[0])),origin_nodes=pd.DataFrame(),
         origin_support=pd.DataFrame(dict(origin_id=[0],part_id=[1])),
@@ -61,7 +61,7 @@ def test_origin_valley_only_and_unsupported_predictions_are_separate(monkeypatch
 
 
 def test_capture_efficiency_uses_area_not_grain_count(monkeypatch):
-    from src.theme1 import valley_bottom as module
+    from src.theme2 import valley_bottom as module
     ref=dict(boundary_origins=pd.DataFrame(),grains=pd.DataFrame(dict(
         part_id=[1,2,3,4],surface_area=[1.,1.,1.,9.],reference_feature=[True,False,False,False],
         valley_feature=[False,True,False,True],bottom_line_length=[0.,1.,0.,1.])),

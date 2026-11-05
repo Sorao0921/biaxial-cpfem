@@ -15,9 +15,9 @@ from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,SPATIAL_MODELS_DI
 from src.dashboard.catalog import scan_outputs,filter_records
 from src.dashboard.initial_prediction import coordinate_height_figure,indicator_color_limits
 from src.dashboard.export import combine_map_pngs
-from src.theme1.contribution import _read_height
-from src.theme1.neighbor_height import predict_from_initial,evaluate_coordinates
-from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
+from src.postprocess.case_data import _read_height
+from src.theme2.neighbor_height import predict_from_initial,evaluate_coordinates
+from src.theme2.sachs_equilibrium import predict_equilibrium_from_initial
 from tools.theme2.predict_neighbor_height import save_prediction
 
 

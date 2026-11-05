@@ -112,7 +112,7 @@ def normalized_height_coordinates(path):
     or observed scale are used to change predicted heights.
     """
     from pathlib import Path
-    from src.theme1.contribution import _read_height
+    from src.postprocess.case_data import _read_height
     coordinates=_read_height(Path(path))
     if coordinates.node_id.duplicated().any() or not len(coordinates):
         raise ValueError('Invalid height node IDs')

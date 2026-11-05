@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,SPATIAL_MODELS_DIR,THEME1_DIR
 from src.dashboard.catalog import scan_outputs,filter_records
-from src.theme1.valley_onset import MODEL_NAMES,LABELS,predict_onset_models,evaluate_onset,property_table
-from src.theme1.contribution import _read_height
-from src.theme1.valley_evaluation import valley_tables
+from src.theme2.valley_onset import MODEL_NAMES,LABELS,predict_onset_models,evaluate_onset,property_table
+from src.postprocess.case_data import _read_height
+from src.theme2.valley_evaluation import valley_tables
 
 TEXTURES=('brass','copper','s','cube','goss')
 NAMES={name:LABELS[name] for name in MODEL_NAMES}

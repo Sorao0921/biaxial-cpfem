@@ -2,7 +2,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from src.theme1.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES
+from src.theme2.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES
 from tests.test_initial_mismatch import mesh_frames
 
 

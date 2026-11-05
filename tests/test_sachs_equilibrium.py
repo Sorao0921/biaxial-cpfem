@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from src.theme1.sachs_equilibrium import (SIGNS,brick_operators,elastic_matrix,engineering_strain,
+from src.theme2.sachs_equilibrium import (SIGNS,brick_operators,elastic_matrix,engineering_strain,
     prepare_mesh,solve_eigenstrain,predict_equilibrium_from_initial)
 
 
@@ -127,7 +127,7 @@ def test_distorted_brick_gradient_and_energy_patch():
 
 
 def test_partial_constraint_preserves_volume_mean_and_trace():
-    from src.theme1.sachs_equilibrium import relax_eigenstrain
+    from src.theme2.sachs_equilibrium import relax_eigenstrain
     rng=np.random.default_rng(14)
     a=rng.normal(size=(4,3,3));a=(a+a.transpose(0,2,1))/2
     a-=np.trace(a,axis1=1,axis2=2)[:,None,None]*np.eye(3)/3
@@ -142,7 +142,7 @@ def test_partial_constraint_preserves_volume_mean_and_trace():
 
 
 def test_partial_constraint_reduces_displacement_heterogeneity_with_equilibrium():
-    from src.theme1.sachs_equilibrium import relax_eigenstrain
+    from src.theme2.sachs_equilibrium import relax_eigenstrain
     nodes,elements=mesh_frames();mesh=prepare_mesh(nodes,elements,multigrid=False)
     a=np.zeros((len(elements),3,3));a[elements.part_id.eq(2),0,2]=.02;a[:,2,0]=a[:,0,2]
     solutions=[]

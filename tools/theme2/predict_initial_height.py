@@ -10,7 +10,7 @@ from src.config.pipeline_paths import PROJECT_ROOT, OUTPUTS_DIR, SPATIAL_MODELS_
 from src.dashboard.catalog import scan_outputs,filter_records
 from src.theme1.initial_taylor_prediction import (
     optimal_activity,surface_geometry,surface_boundary_weights,grain_response,pearson,spearman)
-from src.theme1.initial_height import predict_grain_height,reconstruct_nodes,normalized_height_coordinates
+from src.theme2.initial_height import predict_grain_height,reconstruct_nodes,normalized_height_coordinates
 
 
 def main(argv=None):
@@ -81,7 +81,7 @@ def main(argv=None):
             # Same observed mask for both fields; used ONLY during evaluation.
             observed,_=grain_response(r.path,geometry,top_ids)
             predicted_selected=predicted_nodes
-            from src.theme1.contribution import _read_height
+            from src.postprocess.case_data import _read_height
             mask=_read_height(r.path).node_id
             predicted_selected=predicted_selected[predicted_selected.node_id.isin(mask)]
             evaluation_path=out/'evaluation_predicted_coordinates.csv'

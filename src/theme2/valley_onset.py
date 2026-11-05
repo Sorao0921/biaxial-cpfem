@@ -8,12 +8,12 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from src.theme1.initial_fourway import predict_three_models
-from src.theme1.initial_mismatch import _geometry,scalar_height
-from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
-from src.theme1.neighbor_height import evaluate_coordinates
-from src.theme1.valley_evaluation import valley_tables
-from src.theme1.valley_bottom import bottom_supported_tables,reference_bottom_lines
+from src.theme2.initial_fourway import predict_three_models
+from src.theme2.initial_mismatch import _geometry,scalar_height
+from src.theme2.sachs_equilibrium import predict_equilibrium_from_initial
+from src.theme2.neighbor_height import evaluate_coordinates
+from src.theme2.valley_evaluation import valley_tables
+from src.theme2.valley_bottom import bottom_supported_tables,reference_bottom_lines
 
 MODEL_NAMES=('self_nd','nd_contrast','d_q','equilibrium_diagonal','equilibrium')
 LABELS={'self_nd':'1: Own ND only','nd_contrast':'2: Neighbor ND contrast',

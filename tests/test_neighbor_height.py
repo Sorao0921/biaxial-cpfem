@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from src.theme1.neighbor_height import solve_neighbor_height,evaluate_coordinates
+from src.theme2.neighbor_height import solve_neighbor_height,evaluate_coordinates
 
 
 def grains():

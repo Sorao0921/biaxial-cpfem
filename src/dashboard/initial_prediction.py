@@ -17,10 +17,10 @@ from src.theme1.initial_taylor_prediction import optimal_activity
 from src.crystal_plasticity.stress_response import initial_stress_response, initial_grain_volumes
 from functools import lru_cache
 from src.dashboard.plots import deformed_surface, height_figure, read_height, _draw_boundaries, surface_topology
-from src.theme1.initial_height import normalized_height_coordinates
-from src.theme1.neighbor_height import predict_from_initial, evaluate_coordinates, DEFAULT_BLEND
-from src.theme1.sachs_equilibrium import predict_equilibrium_from_initial
-from src.theme1.contribution import _read_height
+from src.theme2.initial_height import normalized_height_coordinates
+from src.theme2.neighbor_height import predict_from_initial, evaluate_coordinates, DEFAULT_BLEND
+from src.theme2.sachs_equilibrium import predict_equilibrium_from_initial
+from src.postprocess.case_data import _read_height
 
 import matplotlib.tri as mtri
 from src.mapping.plot_style import HEIGHT_SCALE

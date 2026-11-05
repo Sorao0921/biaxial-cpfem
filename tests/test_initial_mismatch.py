@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from src.theme1.initial_mismatch import mismatch_indicators,predict_indicator_models,initial_interfaces
+from src.theme2.initial_mismatch import mismatch_indicators,predict_indicator_models,initial_interfaces
 from tests.test_sachs_equilibrium import mesh_frames as basic_mesh_frames
 
 def mesh_frames(*args):

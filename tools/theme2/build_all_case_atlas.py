@@ -21,7 +21,7 @@ from tqdm import tqdm
 from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,build_spatial_model_dir
 from src.dashboard.catalog import scan_outputs,filter_records
 from src.dashboard.plots import surface_topology
-from src.theme1.contribution import _read_height
+from src.postprocess.case_data import _read_height
 
 
 def plot_pair(predicted,actual,model,output,title,subtitle):

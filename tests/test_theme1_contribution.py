@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 
 from src.dashboard.catalog import scan_outputs
-from src.theme1.contribution import CaseArtifacts, estimate_contributions
+from src.postprocess.case_data import CaseArtifacts
+from src.theme1.contribution import estimate_contributions
 
 
 def _case(tmp_path: Path, feature_weights: tuple[float, float, float]) -> CaseArtifacts:

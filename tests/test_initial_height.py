@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.theme1.initial_height import predict_grain_height,reconstruct_nodes
+from src.theme2.initial_height import predict_grain_height,reconstruct_nodes
 
 
 def initial(az=(1.,3.),m=(2.,2.)):
@@ -67,7 +67,7 @@ def test_slope_is_converted_to_height_using_distance():
 
 
 def test_normalization_removes_plane_and_amplitude(tmp_path):
-    from src.theme1.initial_height import normalized_height_coordinates
+    from src.theme2.initial_height import normalized_height_coordinates
     x,y=np.meshgrid(np.arange(3.),np.arange(3.))
     f=pd.DataFrame({'node_id':np.arange(1,10),'x':x.ravel(),'y':y.ravel(),'z':(x*y).ravel()})
     a=tmp_path/'a.csv';b=tmp_path/'b.csv';f.to_csv(a,index=False)

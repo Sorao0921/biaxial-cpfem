@@ -8,7 +8,8 @@ from tqdm.auto import tqdm
 
 from src.config.pipeline_paths import OUTPUTS_DIR, SPATIAL_MODELS_DIR, THEME1_DIR
 from src.dashboard.catalog import scan_outputs
-from src.theme1.contribution import complete_cases, estimate_contributions
+from src.postprocess.case_data import complete_cases
+from src.theme1.contribution import estimate_contributions
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from src.crystal_plasticity.stress_response import initial_stress_response,stress_ratio_for_strain_ratio
-from src.theme1.neighbor_height import _surface_inputs
-from src.theme1.sachs_equilibrium import relax_eigenstrain
+from src.theme2.neighbor_height import _surface_inputs
+from src.theme2.sachs_equilibrium import relax_eigenstrain
 
 FACE_LOCAL=np.array([[0,3,2,1],[4,5,6,7],[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7]])
 TENSOR_COMPONENTS=[(0,0,'xx'),(1,1,'yy'),(2,2,'zz'),(1,2,'yz'),(0,2,'xz'),(0,1,'xy')]

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
 from src.config.pipeline_paths import THEME1_DIR,SPATIAL_MODELS_DIR
-from src.theme1.initial_fourway import MODEL_NAMES
-from src.theme1.valley_evaluation import valley_tables,fft_scale_table,save_valley_evaluation
+from src.theme2.initial_fourway import MODEL_NAMES
+from src.theme2.valley_evaluation import valley_tables,fft_scale_table,save_valley_evaluation
 from src.dashboard.valley_evaluation import valley_figures,valley_png
 
 

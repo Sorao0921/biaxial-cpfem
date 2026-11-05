@@ -12,7 +12,7 @@ import pandas as pd
 
 from src.crystal_plasticity.stress_response import initial_grain_volumes, initial_stress_response, stress_ratio_for_strain_ratio
 from src.theme1.initial_taylor_prediction import optimal_activity, surface_geometry, surface_boundary_weights
-from src.theme1.initial_height import reconstruct_nodes
+from src.theme2.initial_height import reconstruct_nodes
 
 FEATURES={'k':'k','chi':'chi','pminus':'pminus_midpoint','pabs':'pabs_midpoint','m':'m_initial'}
 DEFAULT_BLEND={'k':.5,'pminus':.5}

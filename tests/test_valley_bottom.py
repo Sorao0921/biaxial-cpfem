@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.theme1.valley_bottom import reference_bottom_lines,predicted_local_lowness
+from src.theme2.valley_bottom import reference_bottom_lines,predicted_local_lowness
 from tests.test_initial_mismatch import mesh_frames
 
 
@@ -57,8 +57,8 @@ def test_reference_lines_are_restricted_to_blue_height_interval(tmp_path):
 
 
 def test_stricter_prediction_threshold_reduces_candidates_without_changing_reference(tmp_path):
-    from src.theme1.valley_evaluation import valley_tables
-    from src.theme1.valley_bottom import bottom_supported_tables
+    from src.theme2.valley_evaluation import valley_tables
+    from src.theme2.valley_bottom import bottom_supported_tables
     top=mesh(tmp_path,12,individual=True)
     top.z=.01+.001*np.cos(4*np.pi*top.x)+.0002*np.cos(8*np.pi*top.y)
     selected={'cpfem':top.copy(),'prediction':top.copy()}
@@ -74,7 +74,7 @@ def test_stricter_prediction_threshold_reduces_candidates_without_changing_refer
 
 
 def test_surface_origins_do_not_require_a_bottom_line(tmp_path,monkeypatch):
-    import src.theme1.valley_bottom as module
+    import src.theme2.valley_bottom as module
     top=mesh(tmp_path,24,individual=True)
     top.z=.01-.002*np.exp(-((top.x-.5)**2+(top.y-.5)**2)/.02)
     # Even a completely broken/empty line extraction must not erase the basin.

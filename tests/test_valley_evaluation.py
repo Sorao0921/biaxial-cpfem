@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-from src.theme1.valley_evaluation import fit_plane_distances,distance_mask,binary_metrics,average_precision,valley_tables,fft_bands
+from src.theme2.valley_evaluation import fit_plane_distances,distance_mask,binary_metrics,average_precision,valley_tables
+from src.postprocess.height_spectral import fft_bands
 from tests.test_initial_mismatch import mesh_frames
 
 

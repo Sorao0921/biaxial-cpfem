@@ -14,7 +14,7 @@ import pandas as pd
 from src.crystal_plasticity.taylor_factor import (
     bunge_sample_to_crystal, components, crystal_strain, fcc_solver,
 )
-from src.theme1.contribution import _read_height
+from src.postprocess.case_data import _read_height
 
 
 @lru_cache(maxsize=1)

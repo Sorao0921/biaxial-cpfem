@@ -7,7 +7,7 @@ current reference xyz. A line on a shared grain boundary supports both grains.
 import numpy as np
 import pandas as pd
 from scipy.ndimage import gaussian_filter,map_coordinates
-from src.theme1.valley_evaluation import _surface,binary_metrics
+from src.theme2.valley_evaluation import _surface,binary_metrics
 from src.theme1.valley_origins import local_origins
 
 

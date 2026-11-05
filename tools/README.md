@@ -32,7 +32,8 @@ python -m tools.theme2.compare_valley_onset --rho -0.5 --seed 1 --texture brass 
 ```
 
 旧 `tools.theme1` の予測コマンドは `tools.theme2`、帯域分析は `tools.postprocess` に変更しました。
-既存データを引き続き利用できるよう、出力先の既定値（`database/theme1` 等）と共有実装の `src.theme1` は維持しています。tools の分類と保存済みデータのパスは別に管理します。
+既存データを引き続き利用できるよう、出力先の既定値（`database/theme1` 等）は維持しています。実装も `src/theme1`（機構）、`src/theme2`（予測・評価）、`src/postprocess`（共通後処理・帯域指標）に分けています。コードの分類と保存済みデータのパスは別に管理します。
+モジュールごとの役割は [src/README.md](../src/README.md) を参照してください。
 
 ## テスト
 

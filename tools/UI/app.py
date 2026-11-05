@@ -102,7 +102,7 @@ if mode == "谷形成起点の因子比較":
     st.stop()
 
 if mode == "高さの帯域比較":
-    from src.dashboard.theme1_bands import render_band_comparison
+    from src.dashboard.height_bands import render_band_comparison
 
     render_band_comparison()
     st.stop()

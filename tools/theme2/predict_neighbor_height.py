@@ -9,8 +9,8 @@ import pandas as pd
 from tqdm.auto import tqdm
 from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,SPATIAL_MODELS_DIR,THEME1_DIR
 from src.dashboard.catalog import scan_outputs,filter_records
-from src.theme1.neighbor_height import predict_from_initial,evaluate_coordinates,DEFAULT_BLEND
-from src.theme1.contribution import _read_height
+from src.theme2.neighbor_height import predict_from_initial,evaluate_coordinates,DEFAULT_BLEND
+from src.postprocess.case_data import _read_height
 
 
 def save_prediction(prediction,directory):

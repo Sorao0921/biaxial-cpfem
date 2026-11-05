@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection,LineCollection
 from matplotlib.colors import ListedColormap,BoundaryNorm
 from matplotlib.patches import Patch
-from src.theme1.valley_evaluation import valley_tables,fft_scale_table,_surface
-from src.theme1.initial_fourway import MODEL_NAMES,LABELS
+from src.theme2.valley_evaluation import valley_tables,fft_scale_table,_surface
+from src.theme2.initial_fourway import MODEL_NAMES,LABELS
 from src.dashboard.export import combine_map_pngs
 from src.dashboard.plots import surface_topology
 

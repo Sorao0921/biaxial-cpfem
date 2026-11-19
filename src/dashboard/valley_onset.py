@@ -12,8 +12,8 @@ from src.config.pipeline_paths import OUTPUTS_DIR, PROJECT_ROOT, build_spatial_m
 from src.dashboard.catalog import filter_records, scan_outputs
 from src.dashboard.initial_prediction import (
     coordinate_height_figure,
-    indicator_color_limits,
 )
+from src.mapping.plot_style import HEIGHT_RANGE
 from src.dashboard.valley_evaluation import valley_archive, valley_figures, valley_png
 from src.postprocess.case_data import _read_height
 from src.theme2.delayed_valley import validate_delayed_candidates
@@ -165,11 +165,11 @@ def render_valley_onset():
     heights = []
     for name in (*DISPLAY_MODELS, "cpfem"):
         coordinates = result["selected"][name]
-        limits = indicator_color_limits(coordinates.z.to_numpy() * 1000, robust=True)
+        limits = HEIGHT_RANGE
         figure = coordinate_height_figure(
             coordinates,
             model,
-            title=LABELS[name] + "\nOwn color range (2–98%)",
+            title=LABELS[name] + "\nFixed color range (8-10)",
             value_range=limits,
         )
         figure.axes[0].title.set_fontsize(12)
@@ -284,7 +284,7 @@ def render_valley_onset():
                     f"{LABELS[name]}：{meta['inverted_deformed_elements']}要素が反転。小変形外挿の適用範囲外です。"
                 )
         st.caption(
-            "青色域の基準は、表示の2–98%高さ範囲の下側40%まで。下位40%の粒や節点を選ぶ規則ではありません。白付近の浅い低部は除きます。"
+            "検出用の高さ基準は各場の2–98%範囲の下側40%まで。表示色域（8〜10固定）とは独立で、下位40%の粒や節点を選ぶ規則ではありません。"
         )
         st.write(
             f"青色域の高さ上限：{result['metadata']['reference_definition']['blue_height_cutoff']:.6g}（元座標単位）"
@@ -325,7 +325,7 @@ def render_valley_onset():
                 if index % 4 == 0:
                     columns = st.columns(4)
                 height = heights[state]
-                limits = indicator_color_limits(height.z.to_numpy() * 1000, robust=True)
+                limits = HEIGHT_RANGE
                 figure = coordinate_height_figure(
                     height,
                     model,

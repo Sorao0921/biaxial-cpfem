@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 from src.config.pipeline_paths import PROJECT_ROOT,OUTPUTS_DIR,build_spatial_model_dir
 from src.dashboard.catalog import scan_outputs,filter_records
-from src.dashboard.initial_prediction import coordinate_height_figure,indicator_color_limits
+from src.dashboard.initial_prediction import coordinate_height_figure
+from src.mapping.plot_style import HEIGHT_RANGE
 from src.dashboard.export import combine_map_pngs
 from src.postprocess.case_data import _read_height
 from src.theme2.initial_fourway import predict_three_models,evaluate_three_models,MODEL_NAMES,LABELS
@@ -18,9 +19,9 @@ def comparison_figures(prediction,evaluation,model_dir):
     selected=evaluation['selected'];metrics=evaluation['metrics'].set_index('model')
     figures=[]
     for name in (*MODEL_NAMES,'cpfem'):
-        # Per-panel display limits: CPFEM amplitudes never set prediction colors.
-        limits=indicator_color_limits(selected[name].z.to_numpy()*1000,robust=True)
-        title=LABELS[name]+'\nOwn color range (2-98%)'
+        # Fixed display limits shared by all models and states.
+        limits=HEIGHT_RANGE
+        title=LABELS[name]+'\nFixed color range (8-10)'
         if name!='cpfem':
             row=metrics.loc[name];r=row.nodal_pearson
             title+=f'\nr={r:.3f}, RMSE={row.raw_height_rmse:.3g}' if np.isfinite(r) else f'\nr=undefined, RMSE={row.raw_height_rmse:.3g}'
@@ -95,7 +96,7 @@ def render_fourway_prediction():
     table=metrics[['model','nodal_pearson','raw_height_rmse','mean_height_bias','std_ratio']].rename(columns={
         'model':'モデル','nodal_pearson':'節点高さ相関','raw_height_rmse':'高さRMSE','mean_height_bias':'平均高さ誤差','std_ratio':'高さ振幅比（予測/CPFEM）'})
     st.dataframe(table,hide_index=True,width='stretch')
-    st.caption(f'自動応力比 β={prediction["configuration"]["beta"]:.6g}。高さは正規化せず、各マップ自身の2〜98百分位で色範囲を個別調整します。色の濃さによるモデル間の振幅比較はできません。誤差計算は全値を使用します。')
+    st.caption(f'自動応力比 β={prediction["configuration"]["beta"]:.6g}。高さは正規化せず、全マップの色範囲を8〜10（×10⁻³）に固定します。誤差計算は全値を使用します。')
     meta=prediction['models']['equilibrium']['metadata']
     st.caption(f'3D平衡：{meta["initial_elements"]:,}要素、力の相対残差 {meta["relative_free_force_residual"]:.2g}。固定初期固有ひずみの線形解であり、すべり・回転・硬化の増分更新はしません。')
     if not meta['finite_geometry_valid']:

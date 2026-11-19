@@ -23,7 +23,7 @@ from src.theme2.sachs_equilibrium import predict_equilibrium_from_initial
 from src.postprocess.case_data import _read_height
 
 import matplotlib.tri as mtri
-from src.mapping.plot_style import HEIGHT_SCALE
+from src.mapping.plot_style import HEIGHT_SCALE, HEIGHT_RANGE, HEIGHT_CMAP, HEIGHT_COLORBAR_TICKS
 from src.dashboard.style import apply_figure_style
 
 LABELS = {
@@ -84,7 +84,7 @@ def prediction_figure(prediction_path, spatial_model_dir, coordinates_path, *, m
     if limits[0]==limits[1]:
         limits=(limits[0]-1e-12,limits[1]+1e-12)
     fig,ax=plt.subplots(figsize=(5.2,4.8),constrained_layout=True)
-    collection=PolyCollection(polygons,array=mapped,cmap='coolwarm' if metric.startswith('relief_from_') or metric in ['height_mean','surface_z_mean'] else ('viridis_r' if metric == 'm_initial' else 'viridis'),norm=Normalize(*limits),edgecolors='none',antialiaseds=False)
+    collection=PolyCollection(polygons,array=mapped,cmap=HEIGHT_CMAP if metric.startswith('relief_from_') or metric in ['height_mean','surface_z_mean'] else ('viridis_r' if metric == 'm_initial' else 'viridis'),norm=Normalize(*limits),edgecolors='none',antialiaseds=False)
     ax.add_collection(collection)
     _draw_boundaries(ax,segments)
     ax.autoscale_view();ax.margins(0);ax.set_aspect('equal')
@@ -98,9 +98,8 @@ def prediction_figure(prediction_path, spatial_model_dir, coordinates_path, *, m
 
 
 def actual_height_figure(coordinates_path, spatial_model_dir):
-    """Raw z with display-only 2--98 percentile limits in renderer units."""
-    _,_,z=read_height(coordinates_path)
-    limits=indicator_color_limits(np.asarray(z)*HEIGHT_SCALE,robust=True)
+    """Raw z on the common fixed height scale."""
+    limits=HEIGHT_RANGE
     return height_figure(coordinates_path, spatial_model_dir=spatial_model_dir,
                          title='State13 surface height', value_range=limits)
 
@@ -118,7 +117,7 @@ def normalized_height_figure(coordinates_path, spatial_model_dir, *, title, exte
         raise ValueError('No complete surface faces for comparison')
     mesh=mtri.Triangulation(coordinates.x,coordinates.y,np.asarray(triangles))
     fig,ax=plt.subplots(figsize=(5.2,4.8),constrained_layout=True)
-    contour=ax.tricontourf(mesh,coordinates.z,levels=np.linspace(-extent,extent,31),cmap='coolwarm',extend='both')
+    contour=ax.tricontourf(mesh,coordinates.z,levels=np.linspace(-extent,extent,31),cmap=HEIGHT_CMAP,extend='both')
     _,_,_,segments=deformed_surface(spatial_model_dir,coordinates_path)
     _draw_boundaries(ax,segments)
     ax.set(xlabel='x',ylabel='y',title=title);ax.set_aspect('equal');ax.margins(0)
@@ -127,7 +126,7 @@ def normalized_height_figure(coordinates_path, spatial_model_dir, *, title, exte
     return fig
 
 
-def coordinate_height_figure(coordinates,spatial_model_dir,*,title,value_range):
+def coordinate_height_figure(coordinates,spatial_model_dir,*,title,value_range=HEIGHT_RANGE):
     """Raw-z contour on complete initial mesh faces, without gap bridging."""
     lookup={int(node):i for i,node in enumerate(coordinates.node_id)}
     _,_,faces,boundaries,_=surface_topology(spatial_model_dir)
@@ -139,12 +138,12 @@ def coordinate_height_figure(coordinates,spatial_model_dir,*,title,value_range):
     if not triangles:raise ValueError('No complete predicted surface faces')
     mesh=mtri.Triangulation(coordinates.x,coordinates.y,np.asarray(triangles))
     fig,ax=plt.subplots(figsize=(5.2,4.8),constrained_layout=True)
-    contour=ax.tricontourf(mesh,coordinates.z.to_numpy()*HEIGHT_SCALE,levels=np.linspace(*value_range,31),cmap='coolwarm',extend='both')
+    contour=ax.tricontourf(mesh,coordinates.z.to_numpy()*HEIGHT_SCALE,levels=np.linspace(*value_range,31),cmap=HEIGHT_CMAP,extend='both')
     xy=coordinates[['x','y']].to_numpy()
     segments=[xy[[lookup[a],lookup[b]]] for a,b in boundaries if a in lookup and b in lookup]
     _draw_boundaries(ax,segments)
     ax.set(xlabel='x',ylabel='y',title=title);ax.set_aspect('equal');ax.margins(0)
-    fig.colorbar(contour,ax=ax,label=r'Surface height $z$ ($\times 10^{-3}$)')
+    fig.colorbar(contour,ax=ax,label=r'Surface height $z$ ($\times 10^{-3}$)', ticks=HEIGHT_COLORBAR_TICKS if tuple(value_range)==HEIGHT_RANGE else None)
     apply_figure_style(fig);ax.title.set_fontsize(14)
     return fig
 
@@ -252,9 +251,7 @@ def render_initial_prediction():
         eq_selected=eq_pair=eq_metrics=None
         if equilibrium is not None:
             eq_selected,eq_pair,eq_metrics=evaluate_coordinates(equilibrium['coordinates'],actual)
-        values=[selected.z.to_numpy(),actual.z.to_numpy()]
-        if eq_selected is not None:values.append(eq_selected.z.to_numpy())
-        limits=indicator_color_limits(np.concatenate(values)*HEIGHT_SCALE,robust=True)
+        limits=HEIGHT_RANGE
         figures=[coordinate_height_figure(selected,model,title='K-based prediction\n(initial + neighbors)',value_range=limits),
                  coordinate_height_figure(actual,model,title='Simulation surface height\n(state13)',value_range=limits)]
     except (ValueError,OSError,KeyError) as error:
@@ -284,7 +281,7 @@ def render_initial_prediction():
             st.warning('初期固有ひずみが大きい粒があります。収束は小変形近似の妥当性を保証しません。')
         st.download_button('3次元平衡の予測・変位・計算条件を保存（ZIP）',equilibrium_archive(equilibrium,eq_pair,eq_metrics),file_name=f'{case}_equilibrium_cfg{config_id}_prediction.zip',mime='application/zip',key='initial-equilibrium-archive')
     correlation_label=f"{metrics['nodal_pearson']:.3f}" if np.isfinite(metrics['nodal_pearson']) else "未定義"
-    st.caption(f"同じ節点IDの高さ相関: {correlation_label} ／ 高さRMSE: {metrics['raw_height_rmse']:.3g}（座標単位）。共通色範囲は全表示場の2〜98百分位。高さの正規化・振幅合わせは行っていません。")
+    st.caption(f"同じ節点IDの高さ相関: {correlation_label} ／ 高さRMSE: {metrics['raw_height_rmse']:.3g}（座標単位）。高さの共通色範囲は8〜10（×10⁻³）固定。高さの正規化・振幅合わせは行っていません。")
     response_rho=prediction['metadata']['stress_model_mean_strain_ratio']
     if response_rho is not None:
         st.caption(f'指定βに対する初期Sachs平均ひずみ比: {response_rho:.3f} ／ 比較する解析のrho: {row.rho:g}。自動計算した応力比β: {beta:.6g}。')
@@ -292,7 +289,7 @@ def render_initial_prediction():
         st.info('この条件の予測は平坦です。初期指標のばらつき・組合せによる相殺・指定ひずみを確認してください。')
     st.download_button('予測データと計算条件を保存（ZIP）',prediction_archive(prediction,pair,metrics),file_name=f'{case}_{source}_beta{beta:g}_m{sensitivity:g}_cfg{config_id}_prediction.zip',mime='application/zip',key='neighbor-height-archive')
     with st.expander('初期指標とstate13高さの比較マップ'):
-        st.caption('M・P_abs・P−・χ・Kはstate1の座標で表示。全マップに2〜98百分位の色範囲を適用し、計算値は変更しません。')
+        st.caption('M・P_abs・P−・χ・Kはstate1の座標で表示。指標は2〜98百分位、高さは8〜10（×10⁻³）の固定色範囲で表示します。')
         try:
             initial_records=filter_records(catalog,kind='height',state=1,rho=float(row.rho),seed=int(row.seed),texture=row.texture,sd=int(row.sd))
             if len(initial_records)!=1:raise ValueError('対応するstate1表面座標がありません。')

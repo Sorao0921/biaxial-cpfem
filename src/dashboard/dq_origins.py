@@ -13,6 +13,7 @@ from src.config.case_selection import CATALOG_SD_LEVELS
 from src.config.pipeline_paths import OUTPUTS_DIR, PROJECT_ROOT, build_spatial_model_dir, build_post_directories
 from src.dashboard.catalog import scan_outputs, filter_records
 from src.dashboard.height_bands import attach_equivalent_strain
+from src.mapping.plot_style import HEIGHT_SCALE
 from src.dashboard.initial_prediction import coordinate_height_figure, indicator_color_limits
 from src.postprocess.case_data import _read_height
 from src.theme2.dq_origins import VERSION, predict_dq, track_dq, track_dq_peaks, project_reference_to_prediction
@@ -206,16 +207,20 @@ def render_dq_origins():
     st.caption('横軸は相当塑性ひずみ。谷は青系、山は赤系。下側＝捕捉、上側の薄色・斜線＝未捕捉、折れ線＝累積捕捉率。消失した起点も初出時の判定を保持し、新規起点のみ追加します。')
     st.dataframe(pd.concat([result['counts'].assign(feature='valley'),result['peak']['counts'].assign(feature='peak')],ignore_index=True),hide_index=True,width='stretch')
     st.subheader('D＋Q予測と各state：谷・山別に表示')
+    st.caption('CPFEMの高さ色域は各stateの2〜98百分位で自動設定。D＋Q予測にはCPFEM state02と同じ上下限を適用します。配色は高い側から赤・黄・緑・青です。')
     mesh=build_spatial_model_dir(key[0])
     histories={'valley':result,'peak':result['peak']}
     projected={feature:project_reference_to_prediction(result['prediction'],h['lines'],h['origins']) for feature,h in histories.items()}
     maps=[('D + Q + reference features',result['prediction'],None)]+[(f'CPFEM state{s:02d}',_read_height(paths[s]),s) for s in range(2,end+1)]
+    height_ranges={state:indicator_color_limits(height.z.to_numpy()*HEIGHT_SCALE,robust=True)
+                   for _,height,state in maps if state is not None}
+    height_ranges[None]=height_ranges[2]
     for feature,h in histories.items():
         st.subheader('谷：谷底線・谷起点' if feature=='valley' else '山：稜線・山起点')
         for start in range(0,len(maps),4):
             columns=st.columns(4)
             for column,(title,height,state) in zip(columns,maps[start:start+4]):
-                fig=coordinate_height_figure(height,mesh,title=title+' / '+FEATURE_STYLES[feature]['label'],value_range=indicator_color_limits(height.z.to_numpy()*1000,robust=True))
+                fig=coordinate_height_figure(height,mesh,title=title+' / '+FEATURE_STYLES[feature]['label'],value_range=height_ranges[state])
                 fig.axes[0].title.set_fontsize(12)
                 if state is None:
                     lines,origins=projected[feature]

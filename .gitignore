@@ -2,7 +2,7 @@
 # Keep local files; version only source, documentation, and base configuration.
 /models/
 /outputs/
-/output/
+/results/
 /database/
 
 # Solver decks (inputs rules below retain their previous behavior).

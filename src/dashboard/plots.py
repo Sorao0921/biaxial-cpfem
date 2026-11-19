@@ -12,7 +12,7 @@ from matplotlib.colors import Normalize
 from matplotlib.ticker import MultipleLocator
 
 from src.dashboard.style import apply_figure_style
-from src.mapping.plot_style import HEIGHT_AXIS_TICK_INTERVAL, HEIGHT_SCALE
+from src.mapping.plot_style import HEIGHT_AXIS_TICK_INTERVAL, HEIGHT_SCALE, HEIGHT_RANGE, HEIGHT_CMAP, HEIGHT_COLORBAR_TICKS
 from src.mapping.spatial_model_plot import _projected_polygons, load_spatial_model
 
 TOTAL_SHEAR_COLUMN = "accumulated_shear_strain_total"
@@ -168,8 +168,8 @@ def height_figure(
     path: Path | str,
     *,
     title: str,
-    value_range: tuple[float, float],
-    cmap: str = "coolwarm",
+    value_range: tuple[float, float] = HEIGHT_RANGE,
+    cmap=HEIGHT_CMAP,
     spatial_model_dir: Path | str | None = None,
 ):
     x, y, z = read_height(path)
@@ -192,7 +192,7 @@ def height_figure(
     axis.xaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.yaxis.set_major_locator(MultipleLocator(HEIGHT_AXIS_TICK_INTERVAL))
     axis.set_title(title)
-    figure.colorbar(contour, ax=axis, label=r"Surface height $z$ ($\times 10^{-3}$)")
+    figure.colorbar(contour, ax=axis, label=r"Surface height $z$ ($\times 10^{-3}$)", ticks=HEIGHT_COLORBAR_TICKS if tuple(value_range) == HEIGHT_RANGE else None)
     return apply_figure_style(figure)
 
 

@@ -10,6 +10,7 @@ from src.config.diamond_cases import SEEDS,DEGREES,TEXTURES,SAMPLES_PER_SEED,VAR
 from src.make_model_process.diamond_orientation import plan_cases,generate_with_mtex,validate_generated
 from tools.preprocess.make_partsmat_diamond import generate_materials,validate_orientation
 from tools.preprocess import merge_all_diamond as merge
+from tools.preprocess.prepare_diamond_windows import deploy_runner
 
 
 def run_pipeline(cases,rhos,orientation_dir,partsmat_dir,keywords_dir,output_dir,
@@ -58,6 +59,8 @@ def run_pipeline(cases,rhos,orientation_dir,partsmat_dir,keywords_dir,output_dir
                 merge.build_keywordset(job,overwrite,reuse_existing);built.add(job.keywordset)
             new,old=merge.merge_models(job,by_group[job.seed,job.degree],overwrite,reuse_existing)
             written+=new;skipped+=old
+    if 'merge' in steps:
+        deploy_runner(output_dir,overwrite=overwrite)
     counts={'orientation_csv':len(cases) if 'orientations' in steps else 0,
             'partsmat':len(cases) if 'materials' in steps else 0,
             'merged':written,'skipped':skipped}

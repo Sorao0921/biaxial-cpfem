@@ -158,3 +158,28 @@ MTEXの定義：[方位の座標変換](https://mtex-toolbox.github.io/Orientati
 既に準備済みのpartsetとboundaryを直接使用する場合は `--no-prepare-keywords` を指定する。
 結合時に要素・節点集合・境界条件・材料・断面の参照整合性を検証する。
 LS-DYNA自体の解析実行はこのスクリプトには含まれない。
+
+
+## Windowsへ移した後の実行
+
+Windows用runnerは `models/diamond_models` 直下の `prepare.ps1` と `RUN_ALL.bat` の2ファイルだけ。
+`RUN_ALL.bat` 冒頭にソルバーのパス・CPU数・メモリを直接設定する。
+`prepare.ps1` が `rho_*/seed_*/deg_*/*.k` をケース名フォルダへ移動して `model.k` に改名し、
+`RUN_ALL.bat` が `rho_*/seed_*/deg_*/*/model.k` を探して一括実行する。
+ケースごとの補助BATは不要。詳細は `external/diamond_runner/README_WINDOWS.md`。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\prepare.ps1
+.\RUN_ALL.bat
+```
+
+既にWindowsへモデルをコピー済みなら、この2ファイルだけをdiamond_models直下へ追加コピーする。
+旧構成の補助ps1/batは不要。以前編集したソルバー設定は新しいRUN_ALL.batへ移す。
+
+runnerだけを配置・更新する場合：
+
+```bash
+.venv/bin/python tools/preprocess/prepare_diamond_windows.py --overwrite
+```
+
+既存RUN_ALL.bat内のソルバーパス・CPU数・メモリの設定値は、Pythonの配置処理で保持する。

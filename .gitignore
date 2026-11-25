@@ -95,3 +95,8 @@ coverage.xml
 /inputs/**/*.csv
 /inputs/**/*.txt
 /inputs/**/*.xml
+
+# Generated MTEX batch record; kept locally with orientation CSVs.
+/inputs/orientation/diamond/generation_manifest.mat
+
+/inputs/orientation_diamond/generation_manifest.mat

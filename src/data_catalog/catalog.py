@@ -274,7 +274,9 @@ WHERE ca.priority = (
 
 def initialize(connection: sqlite3.Connection) -> None:
     connection.executescript(SCHEMA)
-    row = connection.execute("SELECT MAX(version) AS version FROM schema_info").fetchone()
+    row = connection.execute(
+        "SELECT MAX(version) AS version FROM schema_info"
+    ).fetchone()
     if row["version"] is None:
         connection.execute(
             "INSERT INTO schema_info(version, applied_at) VALUES (?, ?)", (2, utc_now())
@@ -297,33 +299,99 @@ def classify(relative_path: Path) -> Classification:
     suffix = relative_path.suffix.lower()
 
     if "/coords/edge_dropped/" in f"/{value}":
-        return Classification("outputs", "surface_height", "postprocess", "edge_dropped", "surface_height", 10)
+        return Classification(
+            "outputs",
+            "surface_height",
+            "postprocess",
+            "edge_dropped",
+            "surface_height",
+            10,
+        )
     if "/coords/rawdata/" in f"/{value}":
-        return Classification("outputs", "surface_height", "extracted", "raw", "surface_height", 20)
+        return Classification(
+            "outputs", "surface_height", "extracted", "raw", "surface_height", 20
+        )
     if "/angles/grain_orientation_metrics/" in f"/{value}":
-        return Classification("outputs", "grain_orientation_metrics", "postprocess", "grain_level", "orientation_metrics", 10)
+        return Classification(
+            "outputs",
+            "grain_orientation_metrics",
+            "postprocess",
+            "grain_level",
+            "orientation_metrics",
+            10,
+        )
     if "/angles/id_set/" in f"/{value}":
-        return Classification("outputs", "orientation", "postprocess", "element_with_ids", "orientation", 20)
+        return Classification(
+            "outputs",
+            "orientation",
+            "postprocess",
+            "element_with_ids",
+            "orientation",
+            20,
+        )
     if "/angles/rawdata/" in f"/{value}":
-        return Classification("outputs", "orientation", "extracted", "raw", "orientation", 30)
+        return Classification(
+            "outputs", "orientation", "extracted", "raw", "orientation", 30
+        )
     if "/shear_strains/id_set/" in f"/{value}":
-        return Classification("outputs", "accumulated_shear_strain", "postprocess", "element_with_ids", "accumulated_shear_strain", 10)
+        return Classification(
+            "outputs",
+            "accumulated_shear_strain",
+            "postprocess",
+            "element_with_ids",
+            "accumulated_shear_strain",
+            10,
+        )
     if "/shear_strains/rawdata/" in f"/{value}":
-        return Classification("outputs", "accumulated_shear_strain", "extracted", "raw", "accumulated_shear_strain", 20)
+        return Classification(
+            "outputs",
+            "accumulated_shear_strain",
+            "extracted",
+            "raw",
+            "accumulated_shear_strain",
+            20,
+        )
     if value.startswith("inputs/orientation/") and suffix == ".csv":
-        return Classification("inputs", "initial_orientation", "input", "grain_level", "initial_orientation", 10)
+        return Classification(
+            "inputs",
+            "initial_orientation",
+            "input",
+            "grain_level",
+            "initial_orientation",
+            10,
+        )
     if value.startswith("database/spatial_model/"):
         kind = relative_path.stem.lower()
-        return Classification("database", f"spatial_model_{kind}", "reference", suffix.lstrip(".") or "file", "spatial_model", 10)
+        return Classification(
+            "database",
+            f"spatial_model_{kind}",
+            "reference",
+            suffix.lstrip(".") or "file",
+            "spatial_model",
+            10,
+        )
     if value.startswith("models/"):
-        return Classification("models", "solver_model", "model", suffix.lstrip(".") or "file", None, 100)
+        return Classification(
+            "models", "solver_model", "model", suffix.lstrip(".") or "file", None, 100
+        )
     if "d3plot" in relative_path.name.lower():
         return Classification("solver", "solver_result", "solver", "d3plot", None, 100)
     if suffix in {".png", ".jpg", ".jpeg", ".svg", ".pdf"}:
-        return Classification("derived", "figure_or_document", "derived", suffix.lstrip("."), None, 200)
+        return Classification(
+            "derived", "figure_or_document", "derived", suffix.lstrip("."), None, 200
+        )
     if suffix in {".py", ".m", ".ps1", ".sh", ".bat", ".tex", ".md"}:
-        return Classification("code", "source_code", "source", suffix.lstrip("."), None, 200)
-    return Classification(relative_path.parts[0] if relative_path.parts else "root", "other", "unknown", suffix.lstrip(".") or "no_extension", None, 500)
+        return Classification(
+            "code", "source_code", "source", suffix.lstrip("."), None, 200
+        )
+    return Classification(
+        relative_path.parts[0] if relative_path.parts else "root",
+        "other",
+        "unknown",
+        suffix.lstrip(".") or "no_extension",
+        None,
+        500,
+    )
 
 
 def parse_case(relative_path: Path) -> CaseFields:
@@ -337,7 +405,9 @@ def parse_case(relative_path: Path) -> CaseFields:
     seed_match = SEED_RE.search(text)
     return CaseFields(
         rho=float(rho_match.group("rho")) if rho_match else None,
-        seed=int(case_match.group("seed")) if case_match else (int(seed_match.group("seed")) if seed_match else None),
+        seed=int(case_match.group("seed"))
+        if case_match
+        else (int(seed_match.group("seed")) if seed_match else None),
         texture=case_match.group("texture").lower() if case_match else None,
         sd=int(case_match.group("sd")) if case_match else None,
         state=int(state_matches[-1].group("state")) if state_matches else None,
@@ -359,8 +429,15 @@ def exclusion_reason(relative_path: Path) -> str | None:
     if suffix in {".pdf", ".html", ".htm"}:
         return "document"
     if suffix in {
-        ".exe", ".dll", ".dylib", ".so", ".class",
-        ".mexw64", ".mexa64", ".mexmaci64", ".mexmaca64",
+        ".exe",
+        ".dll",
+        ".dylib",
+        ".so",
+        ".class",
+        ".mexw64",
+        ".mexa64",
+        ".mexmaci64",
+        ".mexmaca64",
     }:
         return "executable"
     if suffix in EXCLUDED_EXTENSIONS:
@@ -389,7 +466,9 @@ def iter_files(root: Path) -> Iterator[Path]:
 
 def inspect_csv(path: Path) -> tuple[str | None, str | None, str | None]:
     try:
-        with path.open("r", encoding="utf-8-sig", errors="replace", newline="") as stream:
+        with path.open(
+            "r", encoding="utf-8-sig", errors="replace", newline=""
+        ) as stream:
             first_line = stream.readline(256 * 1024).rstrip("\r\n")
         if not first_line:
             return None, None, None
@@ -397,12 +476,18 @@ def inspect_csv(path: Path) -> tuple[str | None, str | None, str | None]:
         values = next(csv.reader([first_line], dialect))
         columns = [value.strip() for value in values]
         is_header = any(re.search(r"[A-Za-z_]", value) for value in columns)
-        return json.dumps(columns, ensure_ascii=False), first_line[:4000], "header" if is_header else "no_header"
+        return (
+            json.dumps(columns, ensure_ascii=False),
+            first_line[:4000],
+            "header" if is_header else "no_header",
+        )
     except Exception as exc:
         return None, None, f"{type(exc).__name__}: {exc}"
 
 
-def sampled_fingerprint(path: Path, size: int, chunk_size: int = 65536) -> tuple[str | None, str | None, str | None]:
+def sampled_fingerprint(
+    path: Path, size: int, chunk_size: int = 65536
+) -> tuple[str | None, str | None, str | None]:
     try:
         digest = hashlib.sha256()
         digest.update(str(size).encode("ascii"))
@@ -411,7 +496,11 @@ def sampled_fingerprint(path: Path, size: int, chunk_size: int = 65536) -> tuple
                 digest.update(stream.read())
                 method = "sha256_full"
             else:
-                for offset in (0, max(0, size // 2 - chunk_size // 2), max(0, size - chunk_size)):
+                for offset in (
+                    0,
+                    max(0, size // 2 - chunk_size // 2),
+                    max(0, size - chunk_size),
+                ):
                     stream.seek(offset)
                     digest.update(stream.read(chunk_size))
                 method = "sha256_sample_first_middle_last_64k"
@@ -452,7 +541,9 @@ RETURNING artifact_id;
 """
 
 
-def existing_unchanged(connection: sqlite3.Connection, path: Path, size: int, mtime_ns: int) -> sqlite3.Row | None:
+def existing_unchanged(
+    connection: sqlite3.Connection, path: Path, size: int, mtime_ns: int
+) -> sqlite3.Row | None:
     return connection.execute(
         "SELECT artifact_id, size_bytes, mtime_ns, csv_columns_json, csv_header, sample_fingerprint, fingerprint_method, readable, inspection_error FROM artifacts WHERE absolute_path = ?",
         (str(path),),
@@ -472,7 +563,9 @@ def ensure_case(connection: sqlite3.Connection, case: CaseFields) -> int:
     return int(row["case_id"])
 
 
-def scan(root: Path, database: Path, *, fingerprint: bool = True, progress_every: int = 500) -> dict[str, int | float | str]:
+def scan(
+    root: Path, database: Path, *, fingerprint: bool = True, progress_every: int = 500
+) -> dict[str, int | float | str]:
     root = root.resolve()
     database = database.resolve()
     connection = connect(database)
@@ -496,8 +589,14 @@ def scan(root: Path, database: Path, *, fingerprint: bool = True, progress_every
                 relative = path.relative_to(root)
                 classification = classify(relative)
                 case = parse_case(relative)
-                old = existing_unchanged(connection, path.resolve(), stat.st_size, stat.st_mtime_ns)
-                unchanged = old is not None and old["size_bytes"] == stat.st_size and old["mtime_ns"] == stat.st_mtime_ns
+                old = existing_unchanged(
+                    connection, path.resolve(), stat.st_size, stat.st_mtime_ns
+                )
+                unchanged = (
+                    old is not None
+                    and old["size_bytes"] == stat.st_size
+                    and old["mtime_ns"] == stat.st_mtime_ns
+                )
 
                 columns_json = old["csv_columns_json"] if unchanged else None
                 csv_header = old["csv_header"] if unchanged else None
@@ -515,29 +614,53 @@ def scan(root: Path, database: Path, *, fingerprint: bool = True, progress_every
                         if csv_error and csv_error not in {"header", "no_header"}:
                             problems.append(csv_error)
                     if fingerprint:
-                        sample_hash, hash_method, hash_error = sampled_fingerprint(path, stat.st_size)
+                        sample_hash, hash_method, hash_error = sampled_fingerprint(
+                            path, stat.st_size
+                        )
                         if hash_error:
                             problems.append(hash_error)
                     if problems:
                         readable = 0
 
-                artifact_id = int(connection.execute(
-                    UPSERT_ARTIFACT,
-                    (
-                        str(path.resolve()), relative.as_posix(), classification.area,
-                        classification.data_kind, classification.stage, classification.representation,
-                        path.suffix.lower(), stat.st_size, stat.st_mtime_ns,
-                        case.rho, case.seed, case.texture, case.sd, case.state,
-                        columns_json, csv_header, sample_hash, hash_method,
-                        readable, " | ".join(problems) or None, scan_id,
-                    ),
-                ).fetchone()[0])
+                artifact_id = int(
+                    connection.execute(
+                        UPSERT_ARTIFACT,
+                        (
+                            str(path.resolve()),
+                            relative.as_posix(),
+                            classification.area,
+                            classification.data_kind,
+                            classification.stage,
+                            classification.representation,
+                            path.suffix.lower(),
+                            stat.st_size,
+                            stat.st_mtime_ns,
+                            case.rho,
+                            case.seed,
+                            case.texture,
+                            case.sd,
+                            case.state,
+                            columns_json,
+                            csv_header,
+                            sample_hash,
+                            hash_method,
+                            readable,
+                            " | ".join(problems) or None,
+                            scan_id,
+                        ),
+                    ).fetchone()[0]
+                )
 
                 if classification.role and case.complete:
                     case_id = ensure_case(connection, case)
                     connection.execute(
                         "INSERT OR REPLACE INTO case_artifacts(case_id, artifact_id, role, priority) VALUES (?, ?, ?, ?)",
-                        (case_id, artifact_id, classification.role, classification.priority),
+                        (
+                            case_id,
+                            artifact_id,
+                            classification.role,
+                            classification.priority,
+                        ),
                     )
             except Exception as exc:
                 errors += 1
@@ -546,23 +669,41 @@ def scan(root: Path, database: Path, *, fingerprint: bool = True, progress_every
             if seen % progress_every == 0:
                 connection.commit()
                 elapsed = time.monotonic() - started
-                print(f"catalog: {seen:,} files, {updated:,} updated, {errors:,} errors, {elapsed:.1f}s", flush=True)
+                print(
+                    f"catalog: {seen:,} files, {updated:,} updated, {errors:,} errors, {elapsed:.1f}s",
+                    flush=True,
+                )
 
         # Remove stale links and records only inside the root of this completed scan.
-        stale_ids = [row[0] for row in connection.execute(
-            "SELECT artifact_id FROM artifacts WHERE absolute_path LIKE ? AND last_scan_id <> ?",
-            (str(root) + os.sep + "%", scan_id),
-        )]
+        stale_ids = [
+            row[0]
+            for row in connection.execute(
+                "SELECT artifact_id FROM artifacts WHERE absolute_path LIKE ? AND last_scan_id <> ?",
+                (str(root) + os.sep + "%", scan_id),
+            )
+        ]
         if stale_ids:
-            connection.executemany("DELETE FROM artifacts WHERE artifact_id = ?", ((value,) for value in stale_ids))
-        connection.execute("DELETE FROM cases WHERE case_id NOT IN (SELECT DISTINCT case_id FROM case_artifacts)")
+            connection.executemany(
+                "DELETE FROM artifacts WHERE artifact_id = ?",
+                ((value,) for value in stale_ids),
+            )
+        connection.execute(
+            "DELETE FROM cases WHERE case_id NOT IN (SELECT DISTINCT case_id FROM case_artifacts)"
+        )
         elapsed = time.monotonic() - started
         connection.execute(
             "UPDATE scan_runs SET finished_at=?, status='complete', files_seen=?, files_updated=?, errors=?, elapsed_seconds=? WHERE scan_id=?",
             (utc_now(), seen, updated, errors, elapsed, scan_id),
         )
         connection.commit()
-        return {"scan_id": scan_id, "files_seen": seen, "files_updated": updated, "errors": errors, "elapsed_seconds": round(elapsed, 3), "database": str(database)}
+        return {
+            "scan_id": scan_id,
+            "files_seen": seen,
+            "files_updated": updated,
+            "errors": errors,
+            "elapsed_seconds": round(elapsed, 3),
+            "database": str(database),
+        }
     except BaseException:
         elapsed = time.monotonic() - started
         connection.execute(
@@ -578,18 +719,28 @@ def scan(root: Path, database: Path, *, fingerprint: bool = True, progress_every
 def report(database: Path) -> dict[str, object]:
     connection = connect(database)
     initialize(connection)
-    totals = dict(connection.execute(
-        "SELECT COUNT(*) AS artifacts, COALESCE(SUM(size_bytes), 0) AS bytes, SUM(CASE WHEN readable = 0 THEN 1 ELSE 0 END) AS unreadable FROM artifacts"
-    ).fetchone())
-    readiness = dict(connection.execute(
-        "SELECT COUNT(*) AS cases, COALESCE(SUM(theme1_ready), 0) AS core_ready, COALESCE(SUM(training_ready), 0) AS training_ready, COALESCE(SUM(has_surface_height), 0) AS height, COALESCE(SUM(has_orientation_metrics), 0) AS orientation, COALESCE(SUM(has_accumulated_shear_strain), 0) AS shear, COALESCE(SUM(has_initial_orientation), 0) AS initial_orientation, COALESCE(SUM(has_spatial_model), 0) AS spatial_model FROM v_theme1_case_readiness"
-    ).fetchone())
-    by_kind = [dict(row) for row in connection.execute(
-        "SELECT data_kind, representation, COUNT(*) AS files, SUM(size_bytes) AS bytes FROM artifacts GROUP BY data_kind, representation ORDER BY files DESC"
-    )]
-    by_rho = [dict(row) for row in connection.execute(
-        "SELECT rho, COUNT(*) AS cases, SUM(theme1_ready) AS ready FROM v_theme1_case_readiness GROUP BY rho ORDER BY rho"
-    )]
+    totals = dict(
+        connection.execute(
+            "SELECT COUNT(*) AS artifacts, COALESCE(SUM(size_bytes), 0) AS bytes, SUM(CASE WHEN readable = 0 THEN 1 ELSE 0 END) AS unreadable FROM artifacts"
+        ).fetchone()
+    )
+    readiness = dict(
+        connection.execute(
+            "SELECT COUNT(*) AS cases, COALESCE(SUM(theme1_ready), 0) AS core_ready, COALESCE(SUM(training_ready), 0) AS training_ready, COALESCE(SUM(has_surface_height), 0) AS height, COALESCE(SUM(has_orientation_metrics), 0) AS orientation, COALESCE(SUM(has_accumulated_shear_strain), 0) AS shear, COALESCE(SUM(has_initial_orientation), 0) AS initial_orientation, COALESCE(SUM(has_spatial_model), 0) AS spatial_model FROM v_theme1_case_readiness"
+        ).fetchone()
+    )
+    by_kind = [
+        dict(row)
+        for row in connection.execute(
+            "SELECT data_kind, representation, COUNT(*) AS files, SUM(size_bytes) AS bytes FROM artifacts GROUP BY data_kind, representation ORDER BY files DESC"
+        )
+    ]
+    by_rho = [
+        dict(row)
+        for row in connection.execute(
+            "SELECT rho, COUNT(*) AS cases, SUM(theme1_ready) AS ready FROM v_theme1_case_readiness GROUP BY rho ORDER BY rho"
+        )
+    ]
     connection.close()
     return {"totals": totals, "theme1": readiness, "by_rho": by_rho, "by_kind": by_kind}
 
@@ -625,22 +776,47 @@ def export_manifest(database: Path, destination: Path, *, ready_only: bool) -> i
     destination.parent.mkdir(parents=True, exist_ok=True)
     with destination.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.writer(stream)
-        writer.writerow(rows[0].keys() if rows else ["rho", "seed", "texture", "sd", "state", "role", "absolute_path", "relative_path", "data_kind", "representation", "size_bytes", "priority"])
+        writer.writerow(
+            rows[0].keys()
+            if rows
+            else [
+                "rho",
+                "seed",
+                "texture",
+                "sd",
+                "state",
+                "role",
+                "absolute_path",
+                "relative_path",
+                "data_kind",
+                "representation",
+                "size_bytes",
+                "priority",
+            ]
+        )
         writer.writerows(tuple(row) for row in rows)
     connection.close()
     return len(rows)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build and query the MFPL research-data catalog.")
+    parser = argparse.ArgumentParser(
+        description="Build and query the MFPL research-data catalog."
+    )
     parser.add_argument("--database", type=Path, default=DEFAULT_DATABASE)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    scan_parser = subparsers.add_parser("scan", help="Incrementally scan the pipeline directory.")
+    scan_parser = subparsers.add_parser(
+        "scan", help="Incrementally scan the pipeline directory."
+    )
     scan_parser.add_argument("--root", type=Path, default=ROOT)
     scan_parser.add_argument("--no-fingerprint", action="store_true")
     scan_parser.add_argument("--progress-every", type=int, default=500)
-    subparsers.add_parser("report", help="Print catalog and Theme 1 readiness statistics.")
-    export_parser = subparsers.add_parser("export", help="Export preferred Theme 1 artifacts as CSV.")
+    subparsers.add_parser(
+        "report", help="Print catalog and Theme 1 readiness statistics."
+    )
+    export_parser = subparsers.add_parser(
+        "export", help="Export preferred Theme 1 artifacts as CSV."
+    )
     export_parser.add_argument("destination", type=Path)
     export_parser.add_argument("--all-cases", action="store_true")
     return parser
@@ -649,13 +825,26 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Iterable[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "scan":
-        result = scan(args.root, args.database, fingerprint=not args.no_fingerprint, progress_every=args.progress_every)
+        result = scan(
+            args.root,
+            args.database,
+            fingerprint=not args.no_fingerprint,
+            progress_every=args.progress_every,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
     elif args.command == "report":
         print(json.dumps(report(args.database), ensure_ascii=False, indent=2))
     elif args.command == "export":
-        count = export_manifest(args.database, args.destination, ready_only=not args.all_cases)
-        print(json.dumps({"rows": count, "destination": str(args.destination)}, ensure_ascii=False, indent=2))
+        count = export_manifest(
+            args.database, args.destination, ready_only=not args.all_cases
+        )
+        print(
+            json.dumps(
+                {"rows": count, "destination": str(args.destination)},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     return 0
 
 

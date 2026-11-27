@@ -3,16 +3,27 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from pathlib import Path
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from src.config.diamond_cases import SEEDS, DEGREES, KEYWORDS_DIR, PARTSMAT_DIR, OUTPUT_DIR
+from src.config.diamond_cases import (
+    DEGREES,
+    KEYWORDS_DIR,
+    OUTPUT_DIR,
+    PARTSMAT_DIR,
+    SEEDS,
+)
+from src.make_model_process.diamond_keywordset import (
+    prepare_inputs,
+    validate_keywordset,
+    validate_load_curves,
+    validate_material_links,
+)
 from src.make_model_process.keyword_output import write_output
-from src.make_model_process.diamond_keywordset import prepare_inputs, validate_keywordset, validate_material_links
 
 # Case settings. Orientation and material parameters belong in the supplied .k files.
 RHOS = [-0.5, 0.0, 0.5, 1.0]
@@ -53,23 +64,36 @@ def build_paths(
 ) -> DiamondFiles:
     values = {"rho": f"{rho:g}", "seed": seed}
     case_dir = output_dir / f"rho_{rho:g}" / f"seed_{seed}"
-    def select(template,alternatives=()):
-        primary=keywords_dir/template.format(**values)
-        if primary.is_file():return primary
-        for alternative in alternatives:
-            candidate=keywords_dir/alternative.format(**values)
-            if candidate.is_file():return candidate
-        return primary
-    return DiamondFiles(
-        rho,seed,degree,
-        select(PARTSET_TEMPLATE),select(CONTROL_TEMPLATE),select(SECTION_TEMPLATE),
-        select(BOUNDARY_TEMPLATE,('keyword_rho_{rho}_diamond/boundary_rho_{rho}.k',
-                                  'keyword_rho_{rho}/boundary_diamond_rho_{rho}.k')),
-        select(CURVE_TEMPLATE,('keyword_rho_{rho}/curve_diamond_rho_{rho}.k',)),
-        partsmat_dir/PARTSMAT_SUBDIR_TEMPLATE.format(**values,deg=f'{degree:g}'),
-        case_dir/'keywordset.k',case_dir/f'deg_{degree:g}',
-    )
 
+    def select(template, alternatives=()):
+        primary = keywords_dir / template.format(**values)
+        if primary.is_file():
+            return primary
+        for alternative in alternatives:
+            candidate = keywords_dir / alternative.format(**values)
+            if candidate.is_file():
+                return candidate
+        return primary
+
+    return DiamondFiles(
+        rho,
+        seed,
+        degree,
+        select(PARTSET_TEMPLATE),
+        select(CONTROL_TEMPLATE),
+        select(SECTION_TEMPLATE),
+        select(
+            BOUNDARY_TEMPLATE,
+            (
+                "keyword_rho_{rho}_diamond/boundary_rho_{rho}.k",
+                "keyword_rho_{rho}/boundary_diamond_rho_{rho}.k",
+            ),
+        ),
+        select(CURVE_TEMPLATE, ("keyword_rho_{rho}/curve_diamond_rho_{rho}.k",)),
+        partsmat_dir / PARTSMAT_SUBDIR_TEMPLATE.format(**values, deg=f"{degree:g}"),
+        case_dir / "keywordset.k",
+        case_dir / f"deg_{degree:g}",
+    )
 
 
 def validate_inputs(jobs: list[DiamondFiles]) -> dict[Path, list[Path]]:
@@ -95,13 +119,14 @@ def validate_inputs(jobs: list[DiamondFiles]) -> dict[Path, list[Path]]:
 
 
 def read_fragment(path: Path) -> str:
-    path=Path(path);stat=path.stat()
-    return _read_fragment_cached(str(path.resolve()),stat.st_mtime_ns,stat.st_size)
+    path = Path(path)
+    stat = path.stat()
+    return _read_fragment_cached(str(path.resolve()), stat.st_mtime_ns, stat.st_size)
 
 
 @lru_cache(maxsize=32)
-def _read_fragment_cached(filename,mtime,size) -> str:
-    path=Path(filename)
+def _read_fragment_cached(filename, mtime, size) -> str:
+    path = Path(filename)
     """Keep all keyword data; remove only deck wrappers and deck-level TITLE."""
     lines = []
     title = False
@@ -118,35 +143,61 @@ def _read_fragment_cached(filename,mtime,size) -> str:
 
 
 def render_deck(sources: list[Path]) -> str:
-    return '*KEYWORD\n'+'\n'.join(read_fragment(source) for source in sources)+'*END\n'
+    # Each fragment already ends in a newline. An extra blank curve card becomes (0,0).
+    body = (
+        "*KEYWORD\n" + "".join(read_fragment(source) for source in sources) + "*END\n"
+    )
+    validate_load_curves(body)
+    return body
 
 
-def write_deck(output: Path, sources: list[Path],overwrite=False,reuse_existing=False) -> bool:
+def write_deck(
+    output: Path, sources: list[Path], overwrite=False, reuse_existing=False
+) -> bool:
     if Path(output).resolve() in {Path(p).resolve() for p in sources}:
-        raise ValueError('Output deck must not replace an input fragment')
-    return write_output(output,render_deck(sources).encode('utf-8'),overwrite,reuse_existing)
+        raise ValueError("Output deck must not replace an input fragment")
+    return write_output(
+        output, render_deck(sources).encode("utf-8"), overwrite, reuse_existing
+    )
 
 
-def build_keywordset(job: DiamondFiles, overwrite=False,reuse_existing=False) -> bool:
-    if job.keywordset.exists() and not overwrite and not reuse_existing:return False
-    sources=[job.control,job.boundary,job.section,job.curve,job.partset]
-    body=render_deck(sources)
-    if (job.partset.parent/'initmesh_diamond.k').is_file():validate_keywordset(body)
-    written=write_output(job.keywordset,body.encode('utf-8'),overwrite,reuse_existing)
-    if written:print(f'Wrote keywordset: {job.keywordset}')
+def build_keywordset(job: DiamondFiles, overwrite=False, reuse_existing=False) -> bool:
+    if job.keywordset.exists() and not overwrite and not reuse_existing:
+        return False
+    sources = [job.control, job.boundary, job.section, job.curve, job.partset]
+    body = render_deck(sources)
+    if (job.partset.parent / "initmesh_diamond.k").is_file():
+        validate_keywordset(body)
+    written = write_output(
+        job.keywordset, body.encode("utf-8"), overwrite, reuse_existing
+    )
+    if written:
+        print(f"Wrote keywordset: {job.keywordset}")
     return written
 
 
-def merge_models(job: DiamondFiles, partsmat_files: list[Path],overwrite=False,reuse_existing=False) -> tuple[int,int]:
-    written=skipped=0
-    info=validate_keywordset(read_fragment(job.keywordset)) if (job.partset.parent/'initmesh_diamond.k').is_file() else None
+def merge_models(
+    job: DiamondFiles, partsmat_files: list[Path], overwrite=False, reuse_existing=False
+) -> tuple[int, int]:
+    written = skipped = 0
+    info = (
+        validate_keywordset(read_fragment(job.keywordset))
+        if (job.partset.parent / "initmesh_diamond.k").is_file()
+        else None
+    )
     for partsmat in partsmat_files:
-        case_name=partsmat.stem.removeprefix('partsmat_');output=job.merged_dir/f'{case_name}.k'
-        if output.exists() and not overwrite and not reuse_existing:skipped+=1;continue
-        if info is not None:validate_material_links(read_fragment(partsmat),info)
-        if write_deck(output,[job.keywordset,partsmat],overwrite,reuse_existing):written+=1
-        else:skipped+=1
-    return written,skipped
+        case_name = partsmat.stem.removeprefix("partsmat_")
+        output = job.merged_dir / f"{case_name}.k"
+        if output.exists() and not overwrite and not reuse_existing:
+            skipped += 1
+            continue
+        if info is not None:
+            validate_material_links(read_fragment(partsmat), info)
+        if write_deck(output, [job.keywordset, partsmat], overwrite, reuse_existing):
+            written += 1
+        else:
+            skipped += 1
+    return written, skipped
 
 
 def main(argv=None) -> None:
@@ -160,9 +211,21 @@ def main(argv=None) -> None:
     parser.add_argument("--partsmat-dir", type=Path, default=PARTSMAT_DIR)
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     parser.add_argument("--overwrite", action="store_true", default=OVERWRITE_EXISTING)
-    parser.add_argument("--reuse-existing",action="store_true",help="Reuse only byte-identical outputs")
-    parser.add_argument("--prepare-keywords",action=argparse.BooleanOptionalAction,default=True)
+    parser.add_argument(
+        "--max-elements", type=int, default=10_000,
+        help="Maximum solid elements when preparing the mesh (default: 10000)",
+    )
+    parser.add_argument(
+        "--reuse-existing",
+        action="store_true",
+        help="Reuse only byte-identical outputs",
+    )
+    parser.add_argument(
+        "--prepare-keywords", action=argparse.BooleanOptionalAction, default=True
+    )
     args = parser.parse_args(argv)
+    if args.max_elements <= 0:
+        parser.error("--max-elements must be positive")
     if len(set(args.seeds)) != len(args.seeds) or any(seed < 0 for seed in args.seeds):
         parser.error("Seeds must be unique nonnegative integers")
     if len(set(args.rhos)) != len(args.rhos) or any(
@@ -174,7 +237,10 @@ def main(argv=None) -> None:
     ):
         parser.error("Degrees must be unique nonnegative finite numbers")
     if args.prepare_keywords:
-        prepare_inputs(args.keywords_dir,args.rhos,overwrite=args.overwrite)
+        prepare_inputs(
+            args.keywords_dir, args.rhos, overwrite=args.overwrite,
+            max_elements=args.max_elements,
+        )
     jobs = [
         build_paths(
             rho, seed, deg, args.keywords_dir, args.partsmat_dir, args.output_dir
@@ -188,9 +254,11 @@ def main(argv=None) -> None:
     built = set()
     for job in jobs:
         if job.keywordset not in built:
-            build_keywordset(job, args.overwrite,args.reuse_existing)
+            build_keywordset(job, args.overwrite, args.reuse_existing)
             built.add(job.keywordset)
-        new, old = merge_models(job, materials[job.partsmat_dir], args.overwrite,args.reuse_existing)
+        new, old = merge_models(
+            job, materials[job.partsmat_dir], args.overwrite, args.reuse_existing
+        )
         written += new
         skipped += old
     print(f"Merged models: {written} written, {skipped} skipped")

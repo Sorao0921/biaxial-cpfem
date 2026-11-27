@@ -35,7 +35,15 @@ $Retry = $env:DIAMOND_RETRY -eq '1'
 $Preview = $env:DIAMOND_PREVIEW -eq '1'
 $ContinueOnError = $env:DIAMOND_CONTINUE -eq '1'
 function Get-PreparedCases {
-    foreach ($rho in @(Get-ChildItem -LiteralPath $root -Directory | Where-Object Name -Match '^rho_-?\d+(?:\.\d+)?$' | Sort-Object Name)) {
+    # A copy in rho_* processes that rho; a copy at diamond_models processes all rhos.
+    $base = Get-Item -LiteralPath $root
+    if ($base.Name -match '^rho_-?\d+(?:\.\d+)?$') {
+        $rhoDirs = @($base)
+    } else {
+        $rhoDirs = @(Get-ChildItem -LiteralPath $root -Directory | Where-Object Name -Match '^rho_-?\d+(?:\.\d+)?$' | Sort-Object Name)
+    }
+    if ($rhoDirs.Count -eq 0) { throw 'Place RUN_ALL.bat in rho_* or diamond_models (not in seed_* or deg_*).' }
+    foreach ($rho in $rhoDirs) {
         foreach ($seed in @(Get-ChildItem -LiteralPath $rho.FullName -Directory | Where-Object Name -Match '^seed_\d+$' | Sort-Object { [int]($_.Name -replace '^seed_', '') })) {
             foreach ($deg in @(Get-ChildItem -LiteralPath $seed.FullName -Directory | Where-Object Name -Match '^deg_\d+(?:\.\d+)?$' | Sort-Object { [double]($_.Name -replace '^deg_', '') })) {
                 foreach ($case in @(Get-ChildItem -LiteralPath $deg.FullName -Directory | Sort-Object Name)) {
@@ -63,6 +71,43 @@ function Test-DiamondNormalTermination {
             (Select-String -LiteralPath $path -Pattern '^\s*(?:\*+\s*)?n\s*o\s*r\s*m\s*a\s*l\s+t\s*e\s*r\s*m\s*i\s*n\s*a\s*t\s*i\s*o\s*n\b' -Quiet)) { return $true }
     }
     return $false
+}
+
+function Write-DiamondLiveOutput {
+    param($Process, $StdoutFile, $StderrFile)
+    # Read both pipes concurrently without waiting for a newline or process exit.
+    # Keep raw bytes in the logs and decode incrementally for console display.
+    $states = @(
+        [PSCustomObject]@{ Stream=$Process.StandardOutput.BaseStream; Log=$StdoutFile; Writer=[Console]::Out; Encoding=$Process.StandardOutput.CurrentEncoding; Buffer=(New-Object byte[] 4096); Decoder=$null; Chars=$null; Task=$null; Done=$false },
+        [PSCustomObject]@{ Stream=$Process.StandardError.BaseStream; Log=$StderrFile; Writer=[Console]::Error; Encoding=$Process.StandardError.CurrentEncoding; Buffer=(New-Object byte[] 4096); Decoder=$null; Chars=$null; Task=$null; Done=$false }
+    )
+    foreach ($state in $states) {
+        $state.Decoder = $state.Encoding.GetDecoder()
+        $state.Chars = New-Object char[] ($state.Encoding.GetMaxCharCount(4096))
+        $state.Task = $state.Stream.ReadAsync($state.Buffer, 0, $state.Buffer.Length)
+    }
+    while (-not $states[0].Done -or -not $states[1].Done) {
+        $progressed = $false
+        foreach ($state in $states) {
+            if ($state.Done -or -not $state.Task.IsCompleted) { continue }
+            $progressed = $true
+            $count = $state.Task.GetAwaiter().GetResult()
+            if ($count -gt 0) {
+                $state.Log.Write($state.Buffer, 0, $count)
+                $state.Log.Flush()
+            }
+            $chars = $state.Decoder.GetChars($state.Buffer, 0, $count, $state.Chars, 0, ($count -eq 0))
+            if ($chars -gt 0) {
+                $state.Writer.Write($state.Chars, 0, $chars)
+                $state.Writer.Flush()
+            }
+            if ($count -eq 0) { $state.Done = $true }
+            else { $state.Task = $state.Stream.ReadAsync($state.Buffer, 0, $state.Buffer.Length) }
+        }
+        if (-not $progressed) { Start-Sleep -Milliseconds 50 }
+    }
+    $Process.WaitForExit()
+    return $Process.ExitCode
 }
 
 function Invoke-DiamondCase {
@@ -102,7 +147,7 @@ function Invoke-DiamondCase {
         $started = Get-Date
         if ((Get-FileHash -LiteralPath (Join-Path $run 'model.k')).Hash -ne $hash) { throw 'Input changed while preparing the run.' }
         # ProcessStartInfo uses literal paths, including spaces and [brackets].
-        # Drain both streams concurrently to files; do not buffer a long run in RAM.
+        # Tee both streams to the console and log files using bounded buffers.
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo.FileName = $SolverPath
         $process.StartInfo.Arguments = $arguments -join ' '
@@ -111,16 +156,11 @@ function Invoke-DiamondCase {
         $process.StartInfo.CreateNoWindow = $true
         $process.StartInfo.RedirectStandardOutput = $true
         $process.StartInfo.RedirectStandardError = $true
-        $stdout = [System.IO.File]::Create((Join-Path $run 'stdout.log'))
-        $stderr = [System.IO.File]::Create((Join-Path $run 'stderr.log'))
+        $stdout = [System.IO.File]::Open((Join-Path $run 'stdout.log'), [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite)
+        $stderr = [System.IO.File]::Open((Join-Path $run 'stderr.log'), [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite)
         try {
             if (-not $process.Start()) { throw 'Could not start solver.' }
-            $outTask = $process.StandardOutput.BaseStream.CopyToAsync($stdout)
-            $errTask = $process.StandardError.BaseStream.CopyToAsync($stderr)
-            $process.WaitForExit()
-            $outTask.GetAwaiter().GetResult()
-            $errTask.GetAwaiter().GetResult()
-            $code = $process.ExitCode
+            $code = Write-DiamondLiveOutput $process $stdout $stderr
         } finally {
             $stdout.Dispose(); $stderr.Dispose(); $process.Dispose()
         }

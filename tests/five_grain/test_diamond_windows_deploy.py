@@ -24,3 +24,19 @@ def test_modified_runner_requires_explicit_update_before_any_copy(tmp_path):
     (tmp_path/'prepare.ps1').unlink()
     with pytest.raises(FileExistsError):windows.deploy_runner(tmp_path)
     assert p.read_text()=='custom runner' and not (tmp_path/'prepare.ps1').exists()
+
+
+def test_deploy_places_one_launcher_per_rho_and_retains_each_solver_setting(tmp_path):
+ for rho in ['rho_-0.5','rho_0','rho_0.5','rho_1']:(tmp_path/rho).mkdir()
+ (tmp_path/'other').mkdir()
+ files=windows.deploy_runner(tmp_path)
+ assert len(files)==6
+ for rho in ['rho_-0.5','rho_0','rho_0.5','rho_1']:
+  assert (tmp_path/rho/'RUN_ALL.bat').exists()
+  assert not (tmp_path/rho/'prepare.ps1').exists()
+ assert not (tmp_path/'other/RUN_ALL.bat').exists()
+ bat=tmp_path/'rho_1/RUN_ALL.bat'
+ bat.write_text(bat.read_text().replace('DIAMOND_NCPU=16','DIAMOND_NCPU=4'))
+ windows.deploy_runner(tmp_path,overwrite=True)
+ assert 'DIAMOND_NCPU=4' in bat.read_text()
+ assert 'DIAMOND_NCPU=16' in (tmp_path/'rho_0/RUN_ALL.bat').read_text()

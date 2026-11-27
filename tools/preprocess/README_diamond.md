@@ -86,6 +86,23 @@ CSVを増やさず、後のGOS・GR・弱点方位との比較や粒間回転の
 
 ## 一連の実行
 
+### 既存の材料カードからモデルセットを再生成する
+
+リポジトリ直下から実行する。
+
+```bash
+.venv/bin/python tools/preprocess/merge_all_diamond.py --overwrite
+```
+
+`inputs/keywords_diamond/consts/` の `initmesh_diamond.k` と `section.k` を読み込み、
+`partset_diamond.k` と4種類のひずみ比の境界節点集合を作り直す。
+既存の材料カードを使って `models/diamond_models/` に解析デッキを再生成する。
+中央粒は板厚方向に貫通し、XY平面上の要素重心で粒IDを割り当てる。中央粒の対角線長は 0.015 mm。
+節点数・ソリッド要素数・各軸の寸法を表示する。既定では10,000要素を超えると partset を保存する前に停止する。
+マージは曲線の末尾に区切りの空白行を追加せず、曲線ブロック内に空白行が残っている場合はエラーにする。
+
+### 方位・材料・モデルの生成
+
 共通の設定は `src/config/diamond_cases.py`。
 
 ```python
@@ -108,12 +125,6 @@ python tools/preprocess/run_diamond_preprocess.py --overwrite
 python tools/preprocess/run_diamond_preprocess.py --steps orientations materials --overwrite
 ```
 
-準備済みのCSV・材料カードから結合する場合：
-
-```bash
-python tools/preprocess/run_diamond_preprocess.py --steps merge
-```
-
 材料カードは、元の `make_partsmat.py` の **`make_partsmat()` をimportして使用**。元ファイル、既存UMAT、材料定数、履歴変数数は変えない。元関数のEuler角小数6桁丸めもそのまま継承する。各段階を個別に呼ぶ場合は `make_partsmat_diamond.py`、`merge_all_diamond.py` を使用できる。
 
 `--seeds`、`--degs`、`--textures`、`--rhos`、`--samples-per-seed` で対象を指定できる。一括スクリプトは選択した材料だけを結合する。各段階を個別に実行する材料・結合スクリプトはフォルダの全CSV／partsmatを列挙するため、別条件の古いファイルを混ぜない。
@@ -122,7 +133,7 @@ python tools/preprocess/run_diamond_preprocess.py --steps merge
 
 ```text
 inputs/keywords_diamond/
-  consts/partset_diamond.k             # 節点・要素・節点集合
+  consts/initmesh_diamond.k            # 初期メッシュ
   consts/control.k
   consts/section.k
   keyword_rho_-0.5_diamond/boundary_rho_-0.5.k
@@ -162,18 +173,18 @@ LS-DYNA自体の解析実行はこのスクリプトには含まれない。
 
 ## Windowsへ移した後の実行
 
-Windows用runnerは `models/diamond_models` 直下の `prepare.ps1` と `RUN_ALL.bat` の2ファイルだけ。
+Windows用runnerは `prepare.ps1` と `RUN_ALL.bat` の2種類だけ。prepare.ps1は `models/diamond_models` 直下、RUN_ALL.batは各rhoフォルダ直下へ配置する。
 `RUN_ALL.bat` 冒頭にソルバーのパス・CPU数・メモリを直接設定する。
 `prepare.ps1` が `rho_*/seed_*/deg_*/*.k` をケース名フォルダへ移動して `model.k` に改名し、
-`RUN_ALL.bat` が `rho_*/seed_*/deg_*/*/model.k` を探して一括実行する。
+各rho直下の `RUN_ALL.bat` が `seed_*/deg_*/*/model.k` を探して、そのrhoの全Seed・全角度・全方位を一括実行する。既定条件では750件/rho。diamond_models直下の互換用RUN_ALL.batなら全rhoを実行する。
 ケースごとの補助BATは不要。詳細は `external/diamond_runner/README_WINDOWS.md`。
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\prepare.ps1
-.\RUN_ALL.bat
+.\rho_1\RUN_ALL.bat
 ```
 
-既にWindowsへモデルをコピー済みなら、この2ファイルだけをdiamond_models直下へ追加コピーする。
+既にWindowsへモデルをコピー済みなら、prepare.ps1をdiamond_models直下へ、RUN_ALL.batを各rho直下へコピーする。
 旧構成の補助ps1/batは不要。以前編集したソルバー設定は新しいRUN_ALL.batへ移す。
 
 runnerだけを配置・更新する場合：

@@ -25,6 +25,31 @@ def fragment(items):
     return ''.join(key+'\n'+''.join(lines).rstrip()+'\n' for key,lines in items)
 
 
+def validate_load_curves(text):
+    """Do not discard blank curve cards: LS-DYNA reads them as a zero point."""
+    curves={}
+    for key,lines in blocks(text):
+        if key not in {'*DEFINE_CURVE','*DEFINE_CURVE_TITLE'}:continue
+        rows=[line.rstrip('\r\n') for line in lines if not line.lstrip().startswith('$')]
+        if key.endswith('_TITLE'):rows=rows[1:]
+        if not rows or not rows[0].strip():raise ValueError('Blank/missing DEFINE_CURVE header')
+        lcid=int(rows[0].replace(',',' ').split()[0])
+        if lcid in curves:raise ValueError(f'Duplicate load curve {lcid}')
+        points=[]
+        for index,line in enumerate(rows[1:],1):
+            if not line.strip():
+                raise ValueError(f'Load curve {lcid}: blank data card at point {index}; LS-DYNA can read an unintended (0,0). Remove separator blank lines.')
+            fields=line.replace(',',' ').split()
+            if len(fields)!=2:
+                raise ValueError(f'Load curve {lcid}: expected two values at point {index}')
+            points.append([float(value.replace('D','E').replace('d','e')) for value in fields])
+        values=np.asarray(points,dtype=float)
+        if len(points)<2 or not np.isfinite(values).all():raise ValueError(f'Load curve {lcid}: invalid/missing points')
+        if np.any(np.diff(values[:,0])<=0):raise ValueError(f'Load curve {lcid}: abscissa must be strictly increasing')
+        curves[lcid]=values
+    return curves
+
+
 def nodes_from_text(text):
     result={}
     for key,lines in blocks(text):
@@ -48,7 +73,7 @@ def save_prepared(path,text,overwrite=False):
     return True
 
 
-def prepare_partset(keywords_dir,central_diagonal=.015,overwrite=False):
+def prepare_partset(keywords_dir,central_diagonal=.015,overwrite=False,*,max_elements=None):
     keywords_dir=Path(keywords_dir);raw=keywords_dir/'consts/initmesh_diamond.k';out=keywords_dir/'consts/partset_diamond.k'
     if not raw.is_file():
         if out.is_file():return out
@@ -61,9 +86,15 @@ def prepare_partset(keywords_dir,central_diagonal=.015,overwrite=False):
         kept=[(k,l) for k,l in blocks(full.read_text()) if k in {'*NODE','*ELEMENT_SOLID','*SET_NODE_LIST','*SET_NODE_LIST_TITLE'}]
         text='*KEYWORD\n'+fragment(kept)+'*END\n'
     parts=[]
-    for key,lines in blocks(text):
+    for key,lines in kept:
         if key=='*ELEMENT_SOLID':parts.extend(int(line.replace(',',' ').split()[1]) for line in data(lines))
     if set(parts)!={1,2,3,4,5}:raise ValueError('Prepared partset must contain five grain element groups')
+    if max_elements is not None and len(parts) > max_elements:
+        raise ValueError(f'{raw}: {len(parts):,} solid elements exceed the limit of {max_elements:,}')
+    xyz = np.array(list(nodes_from_text(text).values()))
+    grid = ' x '.join(str(len(np.unique(axis))) for axis in xyz.T)
+    spans = ' x '.join(f'{span:g}' for span in np.ptp(xyz, axis=0))
+    print(f'Diamond mesh: {len(xyz):,} nodes ({grid}), {len(parts):,} solid elements, spans {spans}')
     save_prepared(out,text,overwrite)
     return out
 
@@ -92,7 +123,7 @@ def prepare_boundary(source,partset,output,overwrite=False):
     return rebuilt
 
 
-def prepare_inputs(keywords_dir,rhos,central_diagonal=.015,overwrite=False):
+def prepare_inputs(keywords_dir,rhos,central_diagonal=.015,overwrite=False,*,max_elements=None):
     """Original raw mesh, boundary cards and curves remain untouched."""
     root=Path(keywords_dir)
     raw=root/'consts/initmesh_diamond.k'
@@ -104,7 +135,7 @@ def prepare_inputs(keywords_dir,rhos,central_diagonal=.015,overwrite=False):
         for path in [source,curve]:
             if not path.is_file():raise FileNotFoundError(path)
         sources.append((source,folder/f'boundary_diamond_rho_{rho:g}.k'))
-    partset=prepare_partset(root,central_diagonal,overwrite)
+    partset=prepare_partset(root,central_diagonal,overwrite,max_elements=max_elements)
     for source,output in sources:
         info=prepare_boundary(source,partset,output,overwrite)
         print(f'Boundary faces ({output.parent.name}): '+', '.join(info))
@@ -113,6 +144,7 @@ def prepare_inputs(keywords_dir,rhos,central_diagonal=.015,overwrite=False):
 @lru_cache(maxsize=8)
 def validate_keywordset(text):
     """Check actual IDs referenced by geometry, node sets, BCs and curves."""
+    validate_load_curves(text)
     bb=blocks(text);nodes=nodes_from_text(text);node_ids=set(nodes)
     elements={};sets={};sections=set();curves=set();referenced_sets=[];referenced_curves=[]
     for key,lines in bb:
